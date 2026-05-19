@@ -19,6 +19,7 @@ app.use(morgan('dev'));
 const HOTEL_SERVICE_URL = process.env.HOTEL_SERVICE_URL || 'http://hotel-service:3001';
 const COMMENTS_SERVICE_URL = process.env.COMMENTS_SERVICE_URL || 'http://comments-service:3002';
 const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3004';
+const AI_AGENT_SERVICE_URL = process.env.AI_AGENT_SERVICE_URL || 'http://ai-agent-service:3003';
 
 // ---------------------------------------------------------
 // PROXY CONFIGURATION
@@ -111,6 +112,19 @@ app.get('/api/comments/hotel/:hotelId', createProxyMiddleware({
 app.all('/api/notifications/*', createProxyMiddleware({
   target: NOTIFICATION_SERVICE_URL,
   changeOrigin: true
+}));
+
+// AI AGENT SERVICE PROXIES
+app.post('/api/agent/chat', verifyTokenOptional, createProxyMiddleware({
+  target: AI_AGENT_SERVICE_URL,
+  changeOrigin: true,
+  on: {
+    proxyReq: (proxyReq, req, res) => {
+      if (req.user && req.user.id) {
+        proxyReq.setHeader('x-user-id', req.user.id);
+      }
+    }
+  }
 }));
 
 // Start server
