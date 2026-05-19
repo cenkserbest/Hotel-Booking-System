@@ -1,0 +1,60 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Hotel {
+  id          Int      @id @default(autoincrement())
+  name        String
+  city        String
+  address     String
+  latitude    Float
+  longitude   Float
+  stars       Float
+  amenities   Json     // e.g., ["Free Wi-Fi", "Pool", "Breakfast"]
+  isActive    Boolean  @default(true)
+  rooms       Room[]
+  bookings    Booking[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Room {
+  id             Int      @id @default(autoincrement())
+  hotelId        Int
+  hotel          Hotel    @relation(fields: [hotelId], references: [id])
+  roomType       String   // e.g., "Single", "Double", "Suite"
+  basePrice      Float
+  capacity       Int      // number of people
+  availabilities RoomAvailability[]
+  bookings       Booking[]
+}
+
+model RoomAvailability {
+  id          Int      @id @default(autoincrement())
+  roomId      Int
+  room        Room     @relation(fields: [roomId], references: [id])
+  date        DateTime @db.Date // Store only the date part
+  totalRooms  Int      // Total physical rooms of this type
+  bookedRooms Int      @default(0) // How many are currently booked for this date
+  
+  @@unique([roomId, date]) // A room can only have one availability record per date
+  @@index([date]) // Needed for "next month" capacity query performance
+}
+
+model Booking {
+  id         Int      @id @default(autoincrement())
+  hotelId    Int
+  hotel      Hotel    @relation(fields: [hotelId], references: [id])
+  roomId     Int
+  room       Room     @relation(fields: [roomId], references: [id])
+  userId     String   // From IAM
+  startDate  DateTime @db.Date
+  endDate    DateTime @db.Date
+  totalPrice Float
+  createdAt  DateTime @default(now())
+}

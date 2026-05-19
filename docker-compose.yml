@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  # ------------------------------------
+  # INFRASTRUCTURE SERVICES
+  # ------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: hotel_postgres
+    environment:
+      POSTGRES_USER: hotel_user
+      POSTGRES_PASSWORD: hotel_password
+      POSTGRES_DB: hotel_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:6-jammy
+    container_name: hotel_mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: comments_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: hotel_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: hotel_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672" # Management UI
+    restart: unless-stopped
+
+  # ------------------------------------
+  # APPLICATION SERVICES
+  # ------------------------------------
+  api-gateway:
+    build: ./api-gateway
+    container_name: hotel_api_gateway
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis
+
+  hotel-service:
+    build: ./services/hotel-service
+    container_name: hotel_core_service
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: "postgresql://hotel_user:hotel_password@postgres:5432/hotel_db"
+      REDIS_URL: "redis://redis:6379"
+      RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672"
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+
+  comments-service:
+    build: ./services/comments-service
+    container_name: hotel_comments_service
+    ports:
+      - "3002:3002"
+    environment:
+      MONGO_URL: "mongodb://admin:password@mongodb:27017/comments_db?authSource=admin"
+    depends_on:
+      - mongodb
+
+  notification-service:
+    build: ./services/notification-service
+    container_name: hotel_notification_service
+    environment:
+      DATABASE_URL: "postgresql://hotel_user:hotel_password@postgres:5432/hotel_db"
+      RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672"
+    depends_on:
+      - rabbitmq
+      - postgres
+
+  ai-agent-service:
+    build: ./services/ai-agent-service
+    container_name: hotel_ai_agent
+    ports:
+      - "3003:3003"
+    environment:
+      GATEWAY_URL: "http://api-gateway:3000"
+    depends_on:
+      - api-gateway
+
+volumes:
+  postgres_data:
+  mongodb_data:
