@@ -64,6 +64,18 @@ app.post('/api/hotels/book', verifyTokenRequired, createProxyMiddleware({
 }));
 
 // 3. Admin Hotel Operations (Requires Authentication & Admin Role check)
+app.get('/api/admin/hotels', verifyTokenRequired, createProxyMiddleware({
+  target: HOTEL_SERVICE_URL,
+  changeOrigin: true,
+  on: {
+    proxyReq: (proxyReq, req, res) => {
+      if (req.user && req.user.id) {
+        proxyReq.setHeader('x-user-id', req.user.id);
+      }
+    }
+  }
+}));
+
 app.post('/api/admin/hotels', verifyTokenRequired, createProxyMiddleware({
   target: HOTEL_SERVICE_URL,
   changeOrigin: true,
