@@ -21,13 +21,16 @@ app.add_middleware(
 GATEWAY_URL = os.getenv("GATEWAY_URL", "http://api-gateway:3000")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-if not GROQ_API_KEY:
-    print("WARNING: GROQ_API_KEY is not set!")
+def get_groq_client():
+    if not GROQ_API_KEY:
+        raise ValueError("GROQ_API_KEY environment variable is not set!")
+    return Groq(api_key=GROQ_API_KEY)
 
-client = Groq(api_key=GROQ_API_KEY)
+from typing import List, Dict, Any, Optional
 
 class ChatRequest(BaseModel):
     message: str
+    history: Optional[List[Dict[str, Any]]] = []
     user_id: str = None
 
 # Tool definitions for Groq
@@ -71,13 +74,19 @@ async def chat_with_agent(req: ChatRequest, x_user_id: str = Header(None)):
         headers['x-user-id'] = uid
 
     messages = [
-        {"role": "system", "content": "You are a helpful hotel booking AI assistant. If the user wants to search for a hotel, ask them for the destination, dates, and number of guests. Once you have all info, call the search_hotels tool. ALWAYS use YYYY-MM-DD format for dates."},
-        {"role": "user", "content": req.message}
+        {"role": "system", "content": "You are a helpful hotel booking AI assistant. If the user wants to search for a hotel, ask them for the destination, dates, and number of guests. Once you have all info, call the search_hotels tool. ALWAYS use YYYY-MM-DD format for dates."}
     ]
 
+    if req.history:
+        for msg in req.history:
+            messages.append({"role": msg["role"], "content": msg["content"]})
+    else:
+        messages.append({"role": "user", "content": req.message})
+
     try:
+        client = get_groq_client()
         response = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant",
             messages=messages,
             tools=tools,
             tool_choice="auto",
