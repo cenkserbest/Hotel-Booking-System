@@ -17,6 +17,10 @@ function App() {
   const [showAuth, setShowAuth] = useState(false)
 
   const [destination, setDestination] = useState('')
+  const [startDate, setStartDate] = useState('2026-06-01')
+  const [endDate, setEndDate] = useState('2026-06-05')
+  const [adults, setAdults] = useState(2)
+
   const [hotels, setHotels] = useState([])
   const [loading, setLoading] = useState(false)
 
@@ -50,7 +54,7 @@ function App() {
       // If login fails, try signing up
       const { error: signUpError } = await supabase.auth.signUp({ email, password })
       if (signUpError) alert(signUpError.message)
-      else alert('Signed up successfully!')
+      else alert('Signed up successfully! Check your email to verify (or disable it in Supabase dashboard).')
     }
     setShowAuth(false)
   }
@@ -68,32 +72,42 @@ function App() {
   }
 
   const handleSearch = async () => {
-    if (!destination) return
+    if (!destination || !startDate || !endDate || !adults) return
     setLoading(true)
     try {
-      const res = await fetch(`${API_URL}/api/hotels/search?destination=${destination}`, {
-        headers: getHeaders()
-      })
+      const url = `${API_URL}/api/hotels/search?city=${destination}&startDate=${startDate}&endDate=${endDate}&adults=${adults}`
+      const res = await fetch(url, { headers: getHeaders() })
       const data = await res.json()
-      setHotels(data)
+      
+      if (Array.isArray(data)) {
+        setHotels(data)
+      } else {
+        alert("Search error: " + (data.error || "Unknown error"))
+        setHotels([])
+      }
     } catch (err) {
       console.error(err)
       alert("Search failed")
+      setHotels([])
     }
     setLoading(false)
   }
 
-  const handleBook = async (hotelId) => {
+  const handleBook = async (hotelId, roomId, basePrice) => {
     if (!session) {
       alert("Please login to book a hotel.")
       setShowAuth(true)
       return
     }
+    const diffTime = Math.abs(new Date(endDate) - new Date(startDate));
+    const requiredDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const totalPrice = basePrice * requiredDays;
+
     try {
       const res = await fetch(`${API_URL}/api/hotels/book`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ hotelId, startDate: '2026-06-01', endDate: '2026-06-05' })
+        body: JSON.stringify({ hotelId, roomId, startDate, endDate, totalPrice })
       })
       if (res.ok) alert("Booking successful!")
       else {
@@ -215,6 +229,18 @@ function App() {
             <label>Destination</label>
             <input type="text" placeholder="e.g. Rome, Istanbul" value={destination} onChange={e => setDestination(e.target.value)} />
           </div>
+          <div className="input-group">
+            <label>Check-in</label>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+          </div>
+          <div className="input-group">
+            <label>Check-out</label>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+          </div>
+          <div className="input-group">
+            <label>Guests</label>
+            <input type="number" min="1" value={adults} onChange={e => setAdults(e.target.value)} />
+          </div>
           <div className="input-group" style={{justifyContent: 'flex-end'}}>
             <button onClick={handleSearch} disabled={loading}>{loading ? 'Searching...' : 'Search'}</button>
           </div>
@@ -224,13 +250,13 @@ function App() {
       <div className="main-content">
         <div className="results">
           <h3 style={{marginBottom: '1rem'}}>Search Results</h3>
-          {hotels.length === 0 && !loading && <p style={{color: 'var(--text-muted)'}}>No hotels found. Try searching for "Istanbul" or "Rome".</p>}
+          {hotels.length === 0 && !loading && <p style={{color: 'var(--text-muted)'}}>No hotels found. Try searching for "Istanbul" or "Rome" and check your dates.</p>}
           
           {hotels.map(hotel => (
             <div key={hotel.id} className="glass-card" style={{marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
               <div>
                 <h4 style={{fontSize: '1.2rem'}}>{hotel.name}</h4>
-                <p style={{color: 'var(--text-muted)'}}>{hotel.destination} • {hotel.rating ? `⭐ ${hotel.rating}` : 'No ratings yet'}</p>
+                <p style={{color: 'var(--text-muted)'}}>{hotel.city} • {hotel.stars ? `⭐ ${hotel.stars}` : 'No ratings yet'}</p>
                 {session && <span style={{color: '#10b981', fontSize: '0.9rem', fontWeight: 'bold'}}>15% Discount Applied!</span>}
                 <div>
                   <button onClick={() => handleViewComments(hotel.id, hotel.name)} style={{ background: 'transparent', padding: 0, color: 'var(--accent)', marginTop: '0.5rem', fontSize: '0.9rem' }}>
@@ -240,10 +266,12 @@ function App() {
               </div>
               <div style={{textAlign: 'right'}}>
                 <div style={{fontSize: '1.5rem', fontWeight: 'bold'}}>
-                  ${session ? (hotel.pricePerNight * 0.85).toFixed(2) : hotel.pricePerNight}
+                  ${hotel.rooms && hotel.rooms.length > 0 ? hotel.rooms[0].basePrice.toFixed(2) : 'N/A'}
                   <span style={{fontSize: '0.9rem', color: 'var(--text-muted)'}}>/night</span>
                 </div>
-                <button onClick={() => handleBook(hotel.id)} style={{padding: '0.5rem 1rem', marginTop: '0.5rem'}}>Book Now</button>
+                {hotel.rooms && hotel.rooms.length > 0 && (
+                  <button onClick={() => handleBook(hotel.id, hotel.rooms[0].id, hotel.rooms[0].basePrice)} style={{padding: '0.5rem 1rem', marginTop: '0.5rem'}}>Book Now</button>
+                )}
               </div>
             </div>
           ))}
