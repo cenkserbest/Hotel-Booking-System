@@ -166,14 +166,20 @@ function App() {
   const handleSendChat = async () => {
     if (!chatInput.trim()) return
     const userMsg = chatInput
-    setMessages(prev => [...prev, { role: 'user', text: userMsg }])
+    const newMessages = [...messages, { role: 'user', text: userMsg }]
+    setMessages(newMessages)
     setChatInput('')
 
     try {
+      const history = newMessages.map(m => ({ 
+        role: m.role === 'ai' ? 'assistant' : 'user', 
+        content: m.text 
+      }))
+
       const res = await fetch(`${API_URL}/api/agent/chat`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ message: userMsg, user_id: session?.user?.id || 'anonymous' })
+        body: JSON.stringify({ message: userMsg, history: history, user_id: session?.user?.id || 'anonymous' })
       })
       const data = await res.json()
       setMessages(prev => [
