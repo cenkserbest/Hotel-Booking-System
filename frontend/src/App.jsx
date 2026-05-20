@@ -31,7 +31,10 @@ function App() {
   
   // Admin Panel State
   const [showAdmin, setShowAdmin] = useState(false)
-  const [adminForm, setAdminForm] = useState({ roomId: '', startDate: '', endDate: '', totalRooms: 10 })
+  const [adminHotels, setAdminHotels] = useState([])
+  const [selectedHotelId, setSelectedHotelId] = useState('')
+  const [selectedRoomId, setSelectedRoomId] = useState('')
+  const [adminForm, setAdminForm] = useState({ startDate: '', endDate: '', totalRooms: 10, status: 'available' })
 
   // Chat State
   const [messages, setMessages] = useState([
@@ -143,17 +146,41 @@ function App() {
     }
   }
 
+  const fetchAdminHotels = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/hotels`, { headers: getHeaders() })
+      if (res.ok) {
+        const data = await res.json()
+        setAdminHotels(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch hotels for admin', err)
+    }
+  }
+
+  const handleOpenAdmin = () => {
+    setShowAdmin(true)
+    fetchAdminHotels()
+  }
+
+  const getSelectedHotelRooms = () => {
+    const hotel = adminHotels.find(h => h.id === parseInt(selectedHotelId))
+    return hotel ? hotel.rooms : []
+  }
+
   const handleAdminSubmit = async (e) => {
     e.preventDefault()
     if (!session) return alert("Must be logged in as admin")
+    if (!selectedRoomId) return alert("Please select a room")
+    const totalRooms = adminForm.status === 'occupied' ? 0 : parseInt(adminForm.totalRooms)
     try {
-      const res = await fetch(`${API_URL}/api/admin/rooms/${adminForm.roomId}/availability`, {
+      const res = await fetch(`${API_URL}/api/admin/rooms/${selectedRoomId}/availability`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({
           startDate: adminForm.startDate,
           endDate: adminForm.endDate,
-          totalRooms: parseInt(adminForm.totalRooms)
+          totalRooms
         })
       })
       if (res.ok) alert("Availability updated successfully!")
@@ -208,7 +235,7 @@ function App() {
         <div className="logo">LuminaHotels</div>
         <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
           {session && (
-            <button onClick={() => setShowAdmin(!showAdmin)} style={{ background: 'var(--accent)', color: '#fff' }}>
+            <button onClick={handleOpenAdmin} style={{ background: 'var(--accent)', color: '#fff' }}>
               Admin Panel
             </button>
           )}
@@ -241,32 +268,78 @@ function App() {
       {/* Admin Modal */}
       {showAdmin && session && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 }}>
-          <div className="glass-card" style={{ width: '500px' }}>
+          <div className="glass-card" style={{ width: '550px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <h2>Hotel Admin Panel</h2>
               <button onClick={() => setShowAdmin(false)} style={{ background: 'transparent' }}>X</button>
             </div>
             <p style={{marginBottom: '1rem', color: 'var(--text-muted)'}}>Add/Update rooms for availability</p>
             <form onSubmit={handleAdminSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Hotel Selection */}
               <div className="input-group">
-                <label>Room ID (e.g. 1 for Rome, 2 for Istanbul)</label>
-                <input type="number" required value={adminForm.roomId} onChange={e => setAdminForm({...adminForm, roomId: e.target.value})} />
+                <label>Otel Seçin (Select Hotel)</label>
+                <select
+                  required
+                  value={selectedHotelId}
+                  onChange={e => { setSelectedHotelId(e.target.value); setSelectedRoomId(''); }}
+                  style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid var(--glass-border)', color: 'white', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '1rem' }}
+                >
+                  <option value="">-- Otel Seçin --</option>
+                  {adminHotels.map(h => (
+                    <option key={h.id} value={h.id}>{h.name} — {h.city}</option>
+                  ))}
+                </select>
               </div>
+              {/* Room Selection */}
+              {selectedHotelId && (
+                <div className="input-group">
+                  <label>Oda Tipi (Room Type)</label>
+                  <select
+                    required
+                    value={selectedRoomId}
+                    onChange={e => setSelectedRoomId(e.target.value)}
+                    style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid var(--glass-border)', color: 'white', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '1rem' }}
+                  >
+                    <option value="">-- Oda Seçin --</option>
+                    {getSelectedHotelRooms().map(r => (
+                      <option key={r.id} value={r.id}>{r.roomType} — ${r.basePrice}/night (Kapasite: {r.capacity})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {/* Dates */}
               <div style={{display: 'flex', gap: '1rem'}}>
                 <div className="input-group" style={{flex: 1}}>
-                  <label>Start Date</label>
+                  <label>Başlangıç (Start)</label>
                   <input type="date" required value={adminForm.startDate} onChange={e => setAdminForm({...adminForm, startDate: e.target.value})} />
                 </div>
                 <div className="input-group" style={{flex: 1}}>
-                  <label>End Date</label>
+                  <label>Bitiş (End)</label>
                   <input type="date" required value={adminForm.endDate} onChange={e => setAdminForm({...adminForm, endDate: e.target.value})} />
                 </div>
               </div>
+              {/* Dolu / Boş Toggle */}
               <div className="input-group">
-                <label>Total Rooms (Capacity)</label>
-                <input type="number" required value={adminForm.totalRooms} onChange={e => setAdminForm({...adminForm, totalRooms: e.target.value})} />
+                <label>Durum (Status)</label>
+                <div style={{ display: 'flex', gap: '1.5rem', padding: '0.5rem 0' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input type="radio" name="status" value="available" checked={adminForm.status === 'available'} onChange={e => setAdminForm({...adminForm, status: e.target.value})} style={{ width: 'auto', accentColor: 'var(--primary)' }} />
+                    Boş (Available)
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input type="radio" name="status" value="occupied" checked={adminForm.status === 'occupied'} onChange={e => setAdminForm({...adminForm, status: e.target.value})} style={{ width: 'auto', accentColor: 'var(--accent)' }} />
+                    Dolu (Occupied)
+                  </label>
+                </div>
               </div>
-              <button type="submit">Update Availability (DUZELT)</button>
+              {/* Room Count - only when Available */}
+              {adminForm.status === 'available' && (
+                <div className="input-group">
+                  <label>Oda Adedi (Room Count)</label>
+                  <input type="number" required min="1" value={adminForm.totalRooms} onChange={e => setAdminForm({...adminForm, totalRooms: e.target.value})} />
+                </div>
+              )}
+              <button type="submit">DÜZELT (Update)</button>
             </form>
           </div>
         </div>
