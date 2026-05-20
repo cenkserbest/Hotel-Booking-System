@@ -228,6 +228,21 @@ app.post('/api/hotels/book', extractUserId, async (req, res) => {
 // ----------------------------------------------------
 // 3. HOTEL ADMIN SERVICE
 // ----------------------------------------------------
+
+// List hotels with rooms (for admin dropdown)
+app.get('/api/admin/hotels', extractUserId, async (req, res) => {
+  try {
+    const hotels = await prisma.hotel.findMany({
+      include: { rooms: true },
+      orderBy: { name: 'asc' }
+    });
+    res.json(hotels);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch hotels" });
+  }
+});
+
 app.post('/api/admin/hotels', extractUserId, async (req, res) => {
   // In real app, verify req.userId has Admin role
   try {
