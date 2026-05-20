@@ -1,14 +1,5 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
-} from 'recharts'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -26,7 +17,7 @@ function App() {
   const [loading, setLoading] = useState(false)
 
   // Modals
-  const [commentsModal, setCommentsModal] = useState({ show: false, data: null, hotelName: '' })
+  const [commentsModal, setCommentsModal] = useState({ show: false, data: null, comments: [], hotelName: '' })
   const [detailModal, setDetailModal] = useState({ show: false, hotel: null })
   
   // Admin Panel State
@@ -138,7 +129,7 @@ function App() {
       const res = await fetch(`${API_URL}/api/comments/hotel/${hotelId}`)
       if (res.ok) {
         const data = await res.json()
-        setCommentsModal({ show: true, data: data.graphData, hotelName })
+        setCommentsModal({ show: true, data: data.graphData, comments: data.comments || [], hotelName })
       }
     } catch (err) {
       console.error(err)
@@ -347,27 +338,88 @@ function App() {
 
       {/* Comments Graph Modal */}
       {commentsModal.show && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 }}>
-          <div className="glass-card" style={{ width: '600px', height: '400px', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <h3>{commentsModal.hotelName} - Ratings</h3>
-              <button onClick={() => setCommentsModal({ show: false, data: null })} style={{ background: 'transparent', padding: '0 0.5rem' }}>X</button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 }}>
+          <div className="glass-card" style={{ width: '700px', maxWidth: '95vw', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h2 style={{ marginBottom: '0.25rem' }}>{commentsModal.hotelName}</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Yorumlar ve Puanlamalar</p>
+              </div>
+              <button onClick={() => setCommentsModal({ show: false, data: null, comments: [], hotelName: '' })} style={{ background: 'transparent', fontSize: '1.2rem', padding: '0.25rem 0.5rem' }}>✕</button>
             </div>
-            <div style={{ flex: 1, width: '100%' }}>
-              {commentsModal.data && commentsModal.data.totalCount > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={getGraphData()} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                    <XAxis type="number" domain={[0, 10]} stroke="#fff" />
-                    <YAxis dataKey="name" type="category" stroke="#fff" width={100} />
-                    <Tooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', color: '#fff' }} />
-                    <Bar dataKey="score" fill="var(--primary)" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <p>No comments available for this hotel yet.</p>
-              )}
-            </div>
+
+            {commentsModal.data && commentsModal.data.totalCount > 0 ? (
+              <>
+                {/* Overall Score Banner */}
+                <div style={{ background: 'rgba(79,70,229,0.2)', border: '1px solid var(--primary)', borderRadius: '12px', padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '3rem', fontWeight: '800', color: 'var(--primary)', lineHeight: 1 }}>{commentsModal.data.overall}</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>/ 10</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: '700' }}>
+                      {commentsModal.data.overall >= 9 ? 'Olağanüstü' : commentsModal.data.overall >= 8 ? 'Çok İyi' : commentsModal.data.overall >= 7 ? 'İyi' : 'Orta'}
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{commentsModal.data.totalCount} doğrulanmış yorum</div>
+                  </div>
+                </div>
+
+                {/* Category Progress Bars */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  {[
+                    { label: 'Temizlik', value: commentsModal.data.temizlik },
+                    { label: 'Personel ve servis', value: commentsModal.data.personelVeServis },
+                    { label: 'İmkân ve özellikler', value: commentsModal.data.imkanVeOzellikler },
+                    { label: 'Konaklama yerinin durumu, imkânları ve kolaylıkları', value: commentsModal.data.konaklamaYerininDurumu },
+                    { label: 'Çevre dostluğu', value: commentsModal.data.cevreDostlugu },
+                  ].map(cat => (
+                    <div key={cat.label}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.9rem' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>{cat.label}</span>
+                        <span style={{ fontWeight: '600' }}>{cat.value}/10</span>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '999px', height: '6px', overflow: 'hidden' }}>
+                        <div style={{ width: `${(cat.value / 10) * 100}%`, height: '100%', background: 'linear-gradient(90deg, var(--primary), var(--accent))', borderRadius: '999px', transition: 'width 0.6s ease' }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Divider */}
+                <hr style={{ border: 'none', borderTop: '1px solid var(--glass-border)' }} />
+
+                {/* Individual Comments */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {commentsModal.comments.map((c, i) => (
+                    <div key={i} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '1rem' }}>
+                            {c.userName.charAt(0)}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: '600' }}>{c.userName}</div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                              {new Date(c.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ background: 'var(--primary)', padding: '0.3rem 0.7rem', borderRadius: '8px', fontWeight: '700', fontSize: '1rem', whiteSpace: 'nowrap' }}>
+                          {c.overallRating}/10
+                        </div>
+                      </div>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5' }}>{c.commentText}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💬</div>
+                <p>Bu otel için henüz yorum bulunmuyor.</p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -392,7 +444,7 @@ function App() {
                   ))}
                 </div>
                 <button onClick={() => handleViewComments(detailModal.hotel.id, detailModal.hotel.name)} style={{ background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)' }}>
-                  View Ratings Graph
+                  💬 Yorumları Gör
                 </button>
               </div>
               
