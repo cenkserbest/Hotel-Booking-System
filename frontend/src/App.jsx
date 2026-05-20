@@ -416,8 +416,8 @@ function App() {
 
         <div className="map">
           <h3 style={{marginBottom: '1rem'}}>AI Assistant</h3>
-          <div className="glass-card chat-widget" style={{position: 'relative', width: '100%', height: '600px', bottom: 'auto', right: 'auto', padding: 0}}>
-            <div className="chat-messages" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '480px', overflowY: 'auto' }}>
+          <div className="glass-card chat-widget" style={{position: 'relative', width: '100%', height: '600px', bottom: 'auto', right: 'auto', padding: 0, display: 'flex', flexDirection: 'column'}}>
+            <div className="chat-messages" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1, overflowY: 'auto', padding: '1rem', paddingBottom: '0.5rem' }}>
               {messages.map((m, i) => (
                 <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
                   <div className={`message ${m.role}`} style={{ maxWidth: '90%' }}>
@@ -447,7 +447,7 @@ function App() {
                 </div>
               ))}
             </div>
-            <div className="chat-input" style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+            <div className="chat-input" style={{ position: 'relative', bottom: 'auto', left: 'auto', right: 'auto' }}>
               <input 
                 type="text" 
                 placeholder="Ask me to search or book..." 
