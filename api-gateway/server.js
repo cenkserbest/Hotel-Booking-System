@@ -32,9 +32,10 @@ app.get('/health', (req, res) => {
 
 // HOTEL SERVICE PROXIES
 // 1. Search Hotels (Public, but we need optional auth for 15% discount)
-app.get('/api/hotels/search', verifyTokenOptional, createProxyMiddleware({
+app.get('/api/v1/hotels/search', verifyTokenOptional, createProxyMiddleware({
   target: HOTEL_SERVICE_URL,
   changeOrigin: true,
+  pathRewrite: { '^/api/v1': '/api' },
   on: {
     proxyReq: (proxyReq, req, res) => {
       if (req.user && req.user.id) {
@@ -45,15 +46,17 @@ app.get('/api/hotels/search', verifyTokenOptional, createProxyMiddleware({
 }));
 
 // 1.5 Get Hotel Details (Public)
-app.get('/api/hotels/:id', createProxyMiddleware({
+app.get('/api/v1/hotels/:id', createProxyMiddleware({
   target: HOTEL_SERVICE_URL,
-  changeOrigin: true
+  changeOrigin: true,
+  pathRewrite: { '^/api/v1': '/api' }
 }));
 
 // 2. Book Hotel (Requires Authentication)
-app.post('/api/hotels/book', verifyTokenRequired, createProxyMiddleware({
+app.post('/api/v1/hotels/book', verifyTokenRequired, createProxyMiddleware({
   target: HOTEL_SERVICE_URL,
   changeOrigin: true,
+  pathRewrite: { '^/api/v1': '/api' },
   on: {
     proxyReq: (proxyReq, req, res) => {
       if (req.user && req.user.id) {
@@ -64,37 +67,43 @@ app.post('/api/hotels/book', verifyTokenRequired, createProxyMiddleware({
 }));
 
 // 3. Admin Hotel Operations (Requires Authentication & Admin Role check)
-app.get('/api/admin/hotels', verifyTokenRequired, createProxyMiddleware({
+app.get('/api/v1/admin/hotels', verifyTokenRequired, createProxyMiddleware({
   target: HOTEL_SERVICE_URL,
   changeOrigin: true,
+  pathRewrite: { '^/api/v1': '/api' },
   on: {
     proxyReq: (proxyReq, req, res) => {
       if (req.user && req.user.id) {
         proxyReq.setHeader('x-user-id', req.user.id);
+        proxyReq.setHeader('x-user-role', req.user.role || 'user');
       }
     }
   }
 }));
 
-app.post('/api/admin/hotels', verifyTokenRequired, createProxyMiddleware({
+app.post('/api/v1/admin/hotels', verifyTokenRequired, createProxyMiddleware({
   target: HOTEL_SERVICE_URL,
   changeOrigin: true,
+  pathRewrite: { '^/api/v1': '/api' },
   on: {
     proxyReq: (proxyReq, req, res) => {
       if (req.user && req.user.id) {
         proxyReq.setHeader('x-user-id', req.user.id);
+        proxyReq.setHeader('x-user-role', req.user.role || 'user');
       }
     }
   }
 }));
 
-app.post('/api/admin/rooms/:roomId/availability', verifyTokenRequired, createProxyMiddleware({
+app.post('/api/v1/admin/rooms/:roomId/availability', verifyTokenRequired, createProxyMiddleware({
   target: HOTEL_SERVICE_URL,
   changeOrigin: true,
+  pathRewrite: { '^/api/v1': '/api' },
   on: {
     proxyReq: (proxyReq, req, res) => {
       if (req.user && req.user.id) {
         proxyReq.setHeader('x-user-id', req.user.id);
+        proxyReq.setHeader('x-user-role', req.user.role || 'user');
       }
     }
   }
@@ -102,9 +111,10 @@ app.post('/api/admin/rooms/:roomId/availability', verifyTokenRequired, createPro
 
 // COMMENTS SERVICE PROXIES
 // Add Comment (Requires Auth)
-app.post('/api/comments/add', verifyTokenRequired, createProxyMiddleware({
+app.post('/api/v1/comments/add', verifyTokenRequired, createProxyMiddleware({
   target: COMMENTS_SERVICE_URL,
   changeOrigin: true,
+  pathRewrite: { '^/api/v1': '/api' },
   on: {
     proxyReq: (proxyReq, req, res) => {
       if (req.user && req.user.id) {
@@ -115,21 +125,24 @@ app.post('/api/comments/add', verifyTokenRequired, createProxyMiddleware({
 }));
 
 // Get Comments (Public)
-app.get('/api/comments/hotel/:hotelId', createProxyMiddleware({
+app.get('/api/v1/comments/hotel/:hotelId', createProxyMiddleware({
   target: COMMENTS_SERVICE_URL,
-  changeOrigin: true
+  changeOrigin: true,
+  pathRewrite: { '^/api/v1': '/api' }
 }));
 
 // NOTIFICATION SERVICE PROXIES (Optional direct access for AI Agent or internal triggering)
-app.all('/api/notifications/*', createProxyMiddleware({
+app.all('/api/v1/notifications/*', createProxyMiddleware({
   target: NOTIFICATION_SERVICE_URL,
-  changeOrigin: true
+  changeOrigin: true,
+  pathRewrite: { '^/api/v1': '/api' }
 }));
 
 // AI AGENT SERVICE PROXIES
-app.post('/api/agent/chat', verifyTokenOptional, createProxyMiddleware({
+app.post('/api/v1/agent/chat', verifyTokenOptional, createProxyMiddleware({
   target: AI_AGENT_SERVICE_URL,
   changeOrigin: true,
+  pathRewrite: { '^/api/v1': '/api' },
   on: {
     proxyReq: (proxyReq, req, res) => {
       if (req.user && req.user.id) {

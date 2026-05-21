@@ -12,7 +12,11 @@ async function verifyWithSupabase(token) {
     throw new Error('Supabase token verification failed');
   }
   const data = await response.json();
-  return { id: data.id, email: data.email };
+  return {
+    id: data.id,
+    email: data.email,
+    role: data.app_metadata?.role || 'user'
+  };
 }
 
 /**
