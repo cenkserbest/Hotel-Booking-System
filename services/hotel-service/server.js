@@ -82,6 +82,13 @@ app.get('/api/hotels/search', extractUserId, async (req, res) => {
     const pageNum = Math.max(1, parseInt(page));
     const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
 
+    // Cache-Aside for search results (5 min TTL)
+    const searchCacheKey = `search:${city}:${startDate}:${endDate}:${adults}:${pageNum}:${limitNum}:${req.userId || 'guest'}`;
+    const cachedSearch = await redisClient.get(searchCacheKey);
+    if (cachedSearch) {
+      return res.json(JSON.parse(cachedSearch));
+    }
+
     // Get hotels in city
     const hotels = await prisma.hotel.findMany({
       where: { city: city, isActive: true },
@@ -133,10 +140,9 @@ app.get('/api/hotels/search', extractUserId, async (req, res) => {
     const totalPages = Math.ceil(total / limitNum);
     const paginatedHotels = availableHotels.slice((pageNum - 1) * limitNum, pageNum * limitNum);
 
-    res.json({
-      data: paginatedHotels,
-      pagination: { page: pageNum, limit: limitNum, total, totalPages }
-    });
+    const result = { data: paginatedHotels, pagination: { page: pageNum, limit: limitNum, total, totalPages } };
+    await redisClient.setEx(searchCacheKey, 300, JSON.stringify(result)); // Cache 5 min
+    res.json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Search failed" });
@@ -294,6 +300,13 @@ app.post('/api/admin/rooms/:roomId/availability', extractUserId, requireAdmin, a
         create: { roomId, date: currentDate, totalRooms }
       });
     }
+
+    // Invalidate hotel details cache so next request gets fresh data
+    const room = await prisma.room.findUnique({ where: { id: roomId }, select: { hotelId: true } });
+    if (room) {
+      await redisClient.del(`hotel:${room.hotelId}:details`);
+    }
+
     res.json({ message: "Availability updated" });
   } catch (err) {
     console.error(err);
