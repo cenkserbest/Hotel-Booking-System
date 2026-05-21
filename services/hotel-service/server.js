@@ -181,13 +181,21 @@ app.get('/api/hotels/:id', async (req, res) => {
 app.post('/api/hotels/book', extractUserId, async (req, res) => {
   if (!req.userId) return res.status(401).json({ error: "Unauthorized" });
 
-  const { hotelId, roomId, startDate, endDate, totalPrice } = req.body;
+  const { hotelId, roomId, startDate, endDate } = req.body;
   const start = new Date(startDate);
   const end = new Date(endDate);
 
   try {
     // Transaction: Create booking and decrease capacity
     const result = await prisma.$transaction(async (tx) => {
+      // Fetch room to calculate price on backend
+      const room = await tx.room.findUnique({ where: { id: parseInt(roomId) } });
+      if (!room) throw new Error('ROOM_NOT_FOUND');
+
+      const nights = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24));
+      let calculatedPrice = room.basePrice * nights;
+      if (req.userId) calculatedPrice = calculatedPrice * 0.85;
+
       // Create booking
       const booking = await tx.booking.create({
         data: {
@@ -196,7 +204,7 @@ app.post('/api/hotels/book', extractUserId, async (req, res) => {
           userId: req.userId,
           startDate: start,
           endDate: end,
-          totalPrice: parseFloat(totalPrice)
+          totalPrice: parseFloat(calculatedPrice.toFixed(2))
         }
       });
 
@@ -245,6 +253,9 @@ app.post('/api/hotels/book', extractUserId, async (req, res) => {
 
     res.status(201).json(result);
   } catch (err) {
+    if (err.message === 'ROOM_NOT_FOUND') {
+      return res.status(404).json({ error: "Room not found." });
+    }
     if (err.message === 'CAPACITY_FULL') {
       return res.status(409).json({ error: "Room not available for selected dates." });
     }
