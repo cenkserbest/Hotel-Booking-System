@@ -34,6 +34,7 @@ function App() {
   const [chatInput, setChatInput] = useState('')
 
   const API_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:3000'
+  const isAdmin = session?.user?.app_metadata?.role === 'admin'
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -225,7 +226,7 @@ function App() {
       <header>
         <div className="logo">LuminaHotels</div>
         <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
-          {session && (
+          {isAdmin && (
             <button onClick={handleOpenAdmin} style={{ background: 'var(--accent)', color: '#fff' }}>
               Admin Panel
             </button>
@@ -257,7 +258,7 @@ function App() {
       )}
 
       {/* Admin Modal */}
-      {showAdmin && session && (
+      {showAdmin && isAdmin && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 }}>
           <div className="glass-card" style={{ width: '550px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
