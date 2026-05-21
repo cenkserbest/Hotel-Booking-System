@@ -59,9 +59,14 @@ function App() {
     e.preventDefault()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
+      const msg = error.message.toLowerCase()
+      if (msg.includes('invalid login credentials') || msg.includes('invalid credentials') || msg.includes('wrong password') || msg.includes('email not confirmed')) {
+        alert('Hatalı e-posta veya şifre.')
+        return
+      }
       const { error: signUpError } = await supabase.auth.signUp({ email, password })
       if (signUpError) alert(signUpError.message)
-      else alert('Signed up successfully! Check your email to verify.')
+      else alert('Kayıt başarılı! E-postanızı doğrulamak için e-postanızı kontrol edin.')
     }
     setShowAuth(false)
   }
