@@ -21,6 +21,41 @@ Hotel booking system built with a microservices architecture, similar to Hotels.
 | AI Agent Service | https://ai-agent-service-fmfgczbbhhdsh5du.austriaeast-01.azurewebsites.net |
 | Notification Service | https://notification-service-gwbyexhag9h4gvdf.austriaeast-01.azurewebsites.net |
 
+## Scheduling — Azure Logic Apps
+
+The nightly capacity check task is implemented using **Azure Logic Apps** (`HotelCapacityScheduler`).
+
+- **Trigger:** Daily recurrence (every 24 hours)
+- **Action:** `POST` to Notification Service `/api/internal/check-capacity`
+- **Logic:** Queries all rooms with less than 20% availability for the next month and logs admin alerts
+- **Definition file:** [`infrastructure/hotel-capacity-scheduler.json`](infrastructure/hotel-capacity-scheduler.json)
+
+```
+Azure Logic Apps (Daily)
+        │
+        ▼ POST /api/internal/check-capacity
+Notification Service
+        │
+        ▼ SQL Query: bookedRooms/totalRooms > 0.80 for next month
+PostgreSQL
+        │
+        ▼ [ALERT] logs per hotel
+```
+
+New reservation notifications are handled separately via **RabbitMQ** (event-driven, not scheduled):
+
+```
+User books hotel
+        │
+        ▼ publish → new_reservations_queue
+Hotel Service (RabbitMQ)
+        │
+        ▼ consume (real-time)
+Notification Service → logs reservation confirmation
+```
+| AI Agent Service | https://ai-agent-service-fmfgczbbhhdsh5du.austriaeast-01.azurewebsites.net |
+| Notification Service | https://notification-service-gwbyexhag9h4gvdf.austriaeast-01.azurewebsites.net |
+
 ---
 
 ## Architecture Overview
