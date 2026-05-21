@@ -17,7 +17,12 @@ function App() {
   const [loading, setLoading] = useState(false)
 
   // Modals
-  const [commentsModal, setCommentsModal] = useState({ show: false, data: null, comments: [], hotelName: '' })
+  const [commentsModal, setCommentsModal] = useState({ show: false, data: null, comments: [], hotelName: '', hotelId: null })
+  const [showCommentForm, setShowCommentForm] = useState(false)
+  const [commentForm, setCommentForm] = useState({
+    commentText: '',
+    ratings: { temizlik: 8, personelVeServis: 8, imkanVeOzellikler: 8, konaklamaYerininDurumu: 8, cevreDostlugu: 8 }
+  })
   const [detailModal, setDetailModal] = useState({ show: false, hotel: null })
   
   // Admin Panel State
@@ -130,11 +135,38 @@ function App() {
       const res = await fetch(`${API_URL}/api/v1/comments/hotel/${hotelId}`)
       if (res.ok) {
         const data = await res.json()
-        setCommentsModal({ show: true, data: data.graphData, comments: data.comments || [], hotelName })
+        setCommentsModal({ show: true, data: data.graphData, comments: data.comments || [], hotelName, hotelId })
+        setShowCommentForm(false)
       }
     } catch (err) {
       console.error(err)
       alert("Failed to load comments")
+    }
+  }
+
+  const handleAddComment = async (e) => {
+    e.preventDefault()
+    try {
+      const res = await fetch(`${API_URL}/api/v1/comments/add`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          hotelId: commentsModal.hotelId,
+          userName: session.user.email.split('@')[0],
+          commentText: commentForm.commentText,
+          ratings: commentForm.ratings
+        })
+      })
+      if (res.ok) {
+        setShowCommentForm(false)
+        setCommentForm({ commentText: '', ratings: { temizlik: 8, personelVeServis: 8, imkanVeOzellikler: 8, konaklamaYerininDurumu: 8, cevreDostlugu: 8 } })
+        await handleViewComments(commentsModal.hotelId, commentsModal.hotelName)
+      } else {
+        const err = await res.json()
+        alert(err.message || 'Yorum eklenemedi.')
+      }
+    } catch (err) {
+      alert('Bir hata oluştu.')
     }
   }
 
@@ -420,6 +452,52 @@ function App() {
                 <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💬</div>
                 <p>Bu otel için henüz yorum bulunmuyor.</p>
               </div>
+            )}
+
+            {/* Add Comment Section */}
+            <hr style={{ border: 'none', borderTop: '1px solid var(--glass-border)' }} />
+            {session ? (
+              showCommentForm ? (
+                <form onSubmit={handleAddComment} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <h3 style={{ margin: 0 }}>Yorum Yap</h3>
+                  {[
+                    { key: 'temizlik', label: 'Temizlik' },
+                    { key: 'personelVeServis', label: 'Personel ve Servis' },
+                    { key: 'imkanVeOzellikler', label: 'İmkân ve Özellikler' },
+                    { key: 'konaklamaYerininDurumu', label: 'Konaklama Durumu' },
+                    { key: 'cevreDostlugu', label: 'Çevre Dostluğu' },
+                  ].map(({ key, label }) => (
+                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <span style={{ width: '180px', fontSize: '0.9rem', color: 'var(--text-muted)', flexShrink: 0 }}>{label}</span>
+                      <input
+                        type="range" min="1" max="10" step="1"
+                        value={commentForm.ratings[key]}
+                        onChange={e => setCommentForm(f => ({ ...f, ratings: { ...f.ratings, [key]: parseInt(e.target.value) } }))}
+                        style={{ flex: 1, accentColor: 'var(--primary)' }}
+                      />
+                      <span style={{ width: '32px', textAlign: 'right', fontWeight: '700' }}>{commentForm.ratings[key]}</span>
+                    </div>
+                  ))}
+                  <textarea
+                    required
+                    placeholder="Yorumunuzu yazın..."
+                    value={commentForm.commentText}
+                    onChange={e => setCommentForm(f => ({ ...f, commentText: e.target.value }))}
+                    rows={4}
+                    style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid var(--glass-border)', color: 'white', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '1rem', resize: 'vertical' }}
+                  />
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button type="submit" style={{ flex: 1 }}>Gönder</button>
+                    <button type="button" onClick={() => setShowCommentForm(false)} style={{ background: 'transparent', border: '1px solid var(--glass-border)' }}>İptal</button>
+                  </div>
+                </form>
+              ) : (
+                <button onClick={() => setShowCommentForm(true)} style={{ background: 'transparent', border: '1px solid var(--primary)', color: 'var(--primary)' }}>
+                  + Yorum Yap
+                </button>
+              )
+            ) : (
+              <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Yorum yapmak için giriş yapmalısınız.</p>
             )}
           </div>
         </div>
