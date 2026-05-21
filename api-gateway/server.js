@@ -83,7 +83,8 @@ const swaggerSpec = swaggerJsdoc({
           responses: {
             201: { description: 'Booking created successfully' },
             401: { description: 'Unauthorized' },
-            409: { description: 'Room not available for selected dates' }
+            409: { description: 'Room not available for selected dates' },
+            500: { description: 'Internal server error' }
           }
         }
       },
