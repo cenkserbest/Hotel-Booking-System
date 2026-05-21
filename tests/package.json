@@ -1,0 +1,20 @@
+{
+  "name": "hotel-booking-tests",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "jest --runInBand --forceExit",
+    "test:hotel": "jest hotel.test.js --forceExit",
+    "test:comments": "jest comments.test.js --forceExit",
+    "test:ai": "jest ai-agent.test.js --forceExit",
+    "test:notification": "jest notification.test.js --forceExit",
+    "test:gateway": "jest gateway.test.js --forceExit"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "axios": "^1.6.0"
+  },
+  "jest": {
+    "testTimeout": 30000,
+    "verbose": true
+  }
+}
