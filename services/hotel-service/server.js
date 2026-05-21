@@ -208,7 +208,14 @@ app.post('/api/hotels/book', extractUserId, async (req, res) => {
         const currentDate = new Date(start);
         currentDate.setDate(currentDate.getDate() + i);
 
-        // This would throw if no record exists or if bookedRooms exceeds totalRooms
+        const availability = await tx.roomAvailability.findUnique({
+          where: { roomId_date: { roomId: parseInt(roomId), date: currentDate } }
+        });
+
+        if (!availability || availability.bookedRooms >= availability.totalRooms) {
+          throw new Error('CAPACITY_FULL');
+        }
+
         await tx.roomAvailability.update({
           where: {
             roomId_date: {
@@ -238,8 +245,11 @@ app.post('/api/hotels/book', extractUserId, async (req, res) => {
 
     res.status(201).json(result);
   } catch (err) {
+    if (err.message === 'CAPACITY_FULL') {
+      return res.status(409).json({ error: "Room not available for selected dates." });
+    }
     console.error(err);
-    res.status(500).json({ error: "Booking failed. Capacity might be full." });
+    res.status(500).json({ error: "Booking failed." });
   }
 });
 
