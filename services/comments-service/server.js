@@ -63,11 +63,18 @@ app.post('/api/comments/add', async (req, res) => {
 app.get('/api/comments/hotel/:hotelId', async (req, res) => {
   try {
     const hotelId = parseInt(req.params.hotelId);
-    
-    // Fetch all comments for list view
-    const comments = await Comment.find({ hotelId }).sort({ createdAt: -1 });
+    const pageNum = Math.max(1, parseInt(req.query.page || '1'));
+    const limitNum = Math.min(100, Math.max(1, parseInt(req.query.limit || '10')));
 
-    // Aggregate to get average per category for the graph
+    const total = await Comment.countDocuments({ hotelId });
+
+    // Fetch paginated comments for list view
+    const comments = await Comment.find({ hotelId })
+      .sort({ createdAt: -1 })
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum);
+
+    // Aggregate to get average per category for the graph (always over all comments)
     const aggregation = await Comment.aggregate([
       { $match: { hotelId: hotelId } },
       {
@@ -96,7 +103,8 @@ app.get('/api/comments/hotel/:hotelId', async (req, res) => {
 
     res.json({
       graphData,
-      comments
+      comments,
+      pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) }
     });
 
   } catch (err) {
