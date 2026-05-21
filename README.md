@@ -4,6 +4,25 @@ Hotel booking system built with a microservices architecture, similar to Hotels.
 
 ---
 
+## Live Demo & Video
+
+| | Link |
+|---|---|
+| Frontend | https://hotel-booking-system-umber-seven.vercel.app/ |
+| Demo Video | https://drive.google.com/drive/folders/1yFUOB4WoGQUjg7oeOOpvb302TpcWKHQp?usp=sharing |
+
+## Deployed Services (Azure)
+
+| Service | URL |
+|---|---|
+| API Gateway | https://api-gateway-fthzgsdmc2dhfzd2.austriaeast-01.azurewebsites.net |
+| Hotel Service | https://hotel-service-ewa3a5f8asd8d0fs.austriaeast-01.azurewebsites.net |
+| Comments Service | https://comments-service-ejgyh2gtd7hme5es.austriaeast-01.azurewebsites.net |
+| AI Agent Service | https://ai-agent-service-fmfgczbbhhdsh5du.austriaeast-01.azurewebsites.net |
+| Notification Service | https://notification-service-gwbyexhag9h4gvdf.austriaeast-01.azurewebsites.net |
+
+---
+
 ## Architecture Overview
 
 ```
