@@ -77,12 +77,12 @@ function App() {
     if (!destination || !startDate || !endDate || !adults) return
     setLoading(true)
     try {
-      const url = `${API_URL}/api/hotels/search?city=${destination}&startDate=${startDate}&endDate=${endDate}&adults=${adults}`
+      const url = `${API_URL}/api/v1/hotels/search?city=${destination}&startDate=${startDate}&endDate=${endDate}&adults=${adults}`
       const res = await fetch(url, { headers: getHeaders() })
       const data = await res.json()
-      
-      if (Array.isArray(data)) {
-        setHotels(data)
+
+      if (data && Array.isArray(data.data)) {
+        setHotels(data.data)
       } else {
         alert("Search error: " + (data.error || "Unknown error"))
         setHotels([])
@@ -106,7 +106,7 @@ function App() {
     const totalPrice = basePrice * requiredDays;
 
     try {
-      const res = await fetch(`${API_URL}/api/hotels/book`, {
+      const res = await fetch(`${API_URL}/api/v1/hotels/book`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ hotelId, roomId, startDate: sDate, endDate: eDate, totalPrice })
@@ -126,7 +126,7 @@ function App() {
 
   const handleViewComments = async (hotelId, hotelName) => {
     try {
-      const res = await fetch(`${API_URL}/api/comments/hotel/${hotelId}`)
+      const res = await fetch(`${API_URL}/api/v1/comments/hotel/${hotelId}`)
       if (res.ok) {
         const data = await res.json()
         setCommentsModal({ show: true, data: data.graphData, comments: data.comments || [], hotelName })
@@ -139,7 +139,7 @@ function App() {
 
   const fetchAdminHotels = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/hotels`, { headers: getHeaders() })
+      const res = await fetch(`${API_URL}/api/v1/admin/hotels`, { headers: getHeaders() })
       if (res.ok) {
         const data = await res.json()
         setAdminHotels(data)
@@ -165,7 +165,7 @@ function App() {
     if (!selectedRoomId) return alert("Please select a room")
     const totalRooms = adminForm.status === 'occupied' ? 0 : parseInt(adminForm.totalRooms)
     try {
-      const res = await fetch(`${API_URL}/api/admin/rooms/${selectedRoomId}/availability`, {
+      const res = await fetch(`${API_URL}/api/v1/admin/rooms/${selectedRoomId}/availability`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({
@@ -194,7 +194,7 @@ function App() {
         content: m.text 
       }))
 
-      const res = await fetch(`${API_URL}/api/agent/chat`, {
+      const res = await fetch(`${API_URL}/api/v1/agent/chat`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ message: userMsg, history: history, user_id: session?.user?.id || 'anonymous' })
