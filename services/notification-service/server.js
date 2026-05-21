@@ -7,7 +7,8 @@ const PORT = process.env.PORT || 3004;
 
 // PostgreSQL Connection
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://hotel_user:hotel_password@localhost:5432/hotel_db'
+  connectionString: process.env.DATABASE_URL || 'postgresql://hotel_user:hotel_password@localhost:5432/hotel_db',
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
 // RabbitMQ Connection & Consumer
