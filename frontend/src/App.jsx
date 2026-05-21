@@ -651,26 +651,48 @@ function App() {
               </div>
               
               <div style={{ flex: 1, background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {detailModal.hotel.rooms && detailModal.hotel.rooms.length > 0 && (
-                  <>
-                    <div>
-                      <div style={{ color: 'var(--text-muted)', textDecoration: 'line-through' }}>
-                        {session && `$${detailModal.hotel.rooms[0].originalPrice?.toFixed(2) || detailModal.hotel.rooms[0].basePrice.toFixed(2)}`}
+                {detailModal.hotel.rooms && detailModal.hotel.rooms.length > 0 && (() => {
+                  const pricePerNight = detailModal.hotel.rooms[0].basePrice;
+                  const nights = startDate && endDate ? Math.max(1, Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24))) : 1;
+                  const totalPrice = parseFloat((pricePerNight * nights).toFixed(2));
+                  return (
+                    <>
+                      {/* Booking Summary */}
+                      <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.9rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Check-in</span>
+                          <span>{startDate || '—'}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Check-out</span>
+                          <span>{endDate || '—'}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Guests</span>
+                          <span>{adults} adult{adults > 1 ? 's' : ''}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Nights</span>
+                          <span>{nights}</span>
+                        </div>
                       </div>
-                      <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>
-                        ${detailModal.hotel.rooms[0].basePrice.toFixed(2)}
+                      <div>
+                        <div style={{ color: 'var(--text-muted)', textDecoration: 'line-through', fontSize: '0.9rem' }}>
+                          {session && `$${(pricePerNight * nights / 0.85).toFixed(2)}`}
+                        </div>
+                        <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>${totalPrice.toFixed(2)}</div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>${pricePerNight.toFixed(2)}/night × {nights} nights</div>
+                        {session && <div style={{ color: '#10b981', fontSize: '0.9rem', marginTop: '0.2rem' }}>Member Price: 15% off applied</div>}
                       </div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>per night / {adults} guests</div>
-                      {session && <div style={{ color: '#10b981', fontSize: '0.9rem', marginTop: '0.2rem' }}>Member Price: 15% off applied</div>}
-                    </div>
-                    <button 
-                      onClick={() => handleBook(detailModal.hotel.id, detailModal.hotel.rooms[0].id, detailModal.hotel.rooms[0].basePrice, startDate, endDate)} 
-                      style={{ padding: '1rem', fontSize: '1.1rem' }}
-                    >
-                      Rezervasyon Yap (Book Now)
-                    </button>
-                  </>
-                )}
+                      <button
+                        onClick={() => handleBook(detailModal.hotel.id, detailModal.hotel.rooms[0].id, pricePerNight, startDate, endDate)}
+                        style={{ padding: '1rem', fontSize: '1.1rem' }}
+                      >
+                        Rezervasyon Yap (Book Now)
+                      </button>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
