@@ -53,9 +53,15 @@ async function startServer() {
 // ----------------------------------------------------
 // MIDDLEWARES
 // ----------------------------------------------------
-// Middleware to read X-User-Id set by API Gateway
 const extractUserId = (req, res, next) => {
   req.userId = req.headers['x-user-id'];
+  next();
+};
+
+const requireAdmin = (req, res, next) => {
+  if (req.headers['x-user-role'] !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden: Admin role required' });
+  }
   next();
 };
 
@@ -64,8 +70,8 @@ const extractUserId = (req, res, next) => {
 // ----------------------------------------------------
 app.get('/api/hotels/search', extractUserId, async (req, res) => {
   try {
-    const { city, startDate, endDate, adults } = req.query;
-    
+    const { city, startDate, endDate, adults, page = '1', limit = '10' } = req.query;
+
     if (!city || !startDate || !endDate || !adults) {
       return res.status(400).json({ error: "Missing required parameters" });
     }
@@ -73,6 +79,8 @@ app.get('/api/hotels/search', extractUserId, async (req, res) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
     const numAdults = parseInt(adults);
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
 
     // Get hotels in city
     const hotels = await prisma.hotel.findMany({
@@ -98,17 +106,14 @@ app.get('/api/hotels/search', extractUserId, async (req, res) => {
 
     const availableHotels = hotels.map(hotel => {
       const validRooms = hotel.rooms.filter(room => {
-        // A room must have availability records for all required days
-        // And each day's (totalRooms - bookedRooms) must be > 0
         const availableDays = room.availabilities.filter(a => (a.totalRooms - a.bookedRooms) > 0);
         return availableDays.length === requiredDays;
       });
 
       if (validRooms.length > 0) {
-        // Calculate dynamic pricing
         const discountedRooms = validRooms.map(room => {
           let price = room.basePrice;
-          if (req.userId) { // 15% discount for logged-in users
+          if (req.userId) {
             price = price * 0.85;
           }
           return {
@@ -124,7 +129,14 @@ app.get('/api/hotels/search', extractUserId, async (req, res) => {
       return null;
     }).filter(h => h !== null);
 
-    res.json(availableHotels);
+    const total = availableHotels.length;
+    const totalPages = Math.ceil(total / limitNum);
+    const paginatedHotels = availableHotels.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+
+    res.json({
+      data: paginatedHotels,
+      pagination: { page: pageNum, limit: limitNum, total, totalPages }
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Search failed" });
@@ -230,7 +242,7 @@ app.post('/api/hotels/book', extractUserId, async (req, res) => {
 // ----------------------------------------------------
 
 // List hotels with rooms (for admin dropdown)
-app.get('/api/admin/hotels', extractUserId, async (req, res) => {
+app.get('/api/admin/hotels', extractUserId, requireAdmin, async (req, res) => {
   try {
     const hotels = await prisma.hotel.findMany({
       include: { rooms: true },
@@ -243,8 +255,7 @@ app.get('/api/admin/hotels', extractUserId, async (req, res) => {
   }
 });
 
-app.post('/api/admin/hotels', extractUserId, async (req, res) => {
-  // In real app, verify req.userId has Admin role
+app.post('/api/admin/hotels', extractUserId, requireAdmin, async (req, res) => {
   try {
     const { name, city, address, latitude, longitude, stars, amenities, rooms } = req.body;
     const hotel = await prisma.hotel.create({
@@ -263,8 +274,7 @@ app.post('/api/admin/hotels', extractUserId, async (req, res) => {
   }
 });
 
-app.post('/api/admin/rooms/:roomId/availability', extractUserId, async (req, res) => {
-  // Add availability for a date range
+app.post('/api/admin/rooms/:roomId/availability', extractUserId, requireAdmin, async (req, res) => {
   const roomId = parseInt(req.params.roomId);
   const { startDate, endDate, totalRooms } = req.body;
   const start = new Date(startDate);
