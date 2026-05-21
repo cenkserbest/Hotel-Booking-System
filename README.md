@@ -280,21 +280,23 @@ Comment
 
 ## Design Decisions & Assumptions
 
-1. **Dual-database strategy** — PostgreSQL for transactional hotel/booking data (ACID guarantees), MongoDB for comments (flexible schema, aggregation pipeline for analytics).
+1. **Booking requires authentication** — The requirement specifies that logged-in users see a 15% discount but does not explicitly restrict booking to authenticated users. We chose to require authentication for booking because: (a) a booking must be linked to a user identity to send confirmation emails via the notification service, (b) anonymous bookings cannot be tracked or managed, and (c) real-world hotel booking systems (Booking.com, Hotels.com) universally require login before completing a reservation. The 15% discount therefore applies to all bookings by design, since only authenticated users can reach the booking endpoint.
+
+3. **Dual-database strategy** — PostgreSQL for transactional hotel/booking data (ACID guarantees), MongoDB for comments (flexible schema, aggregation pipeline for analytics).
 
 2. **Cache-Aside with Redis** — Hotel detail pages are cached for 1 hour. Booking creation does not invalidate the cache (acceptable staleness for static hotel info).
 
-3. **RabbitMQ for async notifications** — Booking creation publishes to `new_reservations_queue`. The notification service consumes this queue independently, decoupling the booking flow from email/SMS delivery.
+4. **RabbitMQ for async notifications** — Booking creation publishes to `new_reservations_queue`. The notification service consumes this queue independently, decoupling the booking flow from email/SMS delivery.
 
-4. **API Gateway as single entry point** — All external traffic goes through the gateway. Internal services are not exposed. The gateway handles JWT verification and forwards `x-user-id` / `x-user-role` headers.
+5. **API Gateway as single entry point** — All external traffic goes through the gateway. Internal services are not exposed. The gateway handles JWT verification and forwards `x-user-id` / `x-user-role` headers.
 
-5. **Admin role via Supabase `app_metadata`** — Role is stored in `app_metadata.role` (not `user_metadata`) so users cannot modify it themselves. The gateway extracts this and forwards it as `x-user-role`.
+6. **Admin role via Supabase `app_metadata`** — Role is stored in `app_metadata.role` (not `user_metadata`) so users cannot modify it themselves. The gateway extracts this and forwards it as `x-user-role`.
 
-6. **15% discount for authenticated users** — Applied in the hotel search response. The original price is also returned so the frontend can show a strikethrough price.
+7. **15% discount for authenticated users** — Applied in the hotel search response. The original price is also returned so the frontend can show a strikethrough price.
 
-7. **Capacity scheduler** — `node-cron` is delegated to an external cloud scheduler (Logic Apps / Google Cloud Scheduler) calling `POST /api/v1/notifications/api/internal/check-capacity`. This avoids coupling the schedule to the service process lifecycle.
+8. **Capacity scheduler** — `node-cron` is delegated to an external cloud scheduler (Logic Apps / Google Cloud Scheduler) calling `POST /api/v1/notifications/api/internal/check-capacity`. This avoids coupling the schedule to the service process lifecycle.
 
-8. **AI Agent tool-calling** — The agent uses Groq's `llama-3.1-8b-instant` with two tools: `search_hotels` (fetches from hotel service via gateway) and `book_hotel` (requires login; POSTs to booking endpoint on user confirmation).
+9. **AI Agent tool-calling** — The agent uses Groq's `llama-3.1-8b-instant` with two tools: `search_hotels` (fetches from hotel service via gateway) and `book_hotel` (requires login; POSTs to booking endpoint on user confirmation).
 
 ---
 
