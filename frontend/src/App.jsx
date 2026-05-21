@@ -111,21 +111,17 @@ function App() {
     setLoading(false)
   }
 
-  const handleBook = async (hotelId, roomId, basePrice, sDate, eDate) => {
+  const handleBook = async (hotelId, roomId, sDate, eDate) => {
     if (!session) {
       alert("Please login to book a hotel.")
       setShowAuth(true)
       return
     }
-    const diffTime = Math.abs(new Date(eDate) - new Date(sDate));
-    const requiredDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    const totalPrice = basePrice * requiredDays;
-
     try {
       const res = await fetch(`${API_URL}/api/v1/hotels/book`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ hotelId, roomId, startDate: sDate, endDate: eDate, totalPrice })
+        body: JSON.stringify({ hotelId, roomId, startDate: sDate, endDate: eDate })
       })
       if (res.ok) {
         alert("Booking successful!")
@@ -685,7 +681,7 @@ function App() {
                         {session && <div style={{ color: '#10b981', fontSize: '0.9rem', marginTop: '0.2rem' }}>Member Price: 15% off applied</div>}
                       </div>
                       <button
-                        onClick={() => handleBook(detailModal.hotel.id, detailModal.hotel.rooms[0].id, pricePerNight, startDate, endDate)}
+                        onClick={() => handleBook(detailModal.hotel.id, detailModal.hotel.rooms[0].id, startDate, endDate)}
                         style={{ padding: '1rem', fontSize: '1.1rem' }}
                       >
                         Rezervasyon Yap (Book Now)
@@ -768,7 +764,7 @@ function App() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontWeight: 'bold' }}>${hotel.rooms[0].basePrice.toFixed(2)}/night</span>
                             <button 
-                              onClick={() => handleBook(hotel.id, hotel.rooms[0].id, hotel.rooms[0].basePrice, m.data.searchParams.startDate, m.data.searchParams.endDate)}
+                              onClick={() => handleBook(hotel.id, hotel.rooms[0].id, m.data.searchParams.startDate, m.data.searchParams.endDate)}
                               style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem', background: 'var(--accent)' }}
                             >
                               Reserve Room
