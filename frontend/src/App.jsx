@@ -517,6 +517,18 @@ function App() {
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '2rem' }}>
               <div style={{ flex: 2 }}>
                 <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '1rem' }}>📍 {detailModal.hotel.address}, {detailModal.hotel.city}</p>
+                {detailModal.hotel.latitude && detailModal.hotel.longitude && (
+                  <iframe
+                    title="hotel-map"
+                    width="100%"
+                    height="200"
+                    frameBorder="0"
+                    style={{ border: 0, borderRadius: '12px', marginBottom: '1rem' }}
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={`https://maps.google.com/maps?q=${detailModal.hotel.latitude},${detailModal.hotel.longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                    allowFullScreen
+                  />
+                )}
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                   {detailModal.hotel.amenities && detailModal.hotel.amenities.map(am => (
                     <span key={am} style={{ background: 'rgba(255,255,255,0.1)', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.9rem' }}>{am}</span>
@@ -601,21 +613,6 @@ function App() {
             </div>
           ))}
 
-          {/* Map View */}
-          {destination && (
-            <div className="glass-card" style={{ marginTop: '2rem', padding: '1rem' }}>
-              <h3 style={{marginBottom: '1rem'}}>Haritada Göster (Map View)</h3>
-              <iframe 
-                width="100%" 
-                height="300" 
-                frameBorder="0" 
-                style={{ border: 0, borderRadius: '12px' }}
-                referrerPolicy="no-referrer-when-downgrade" 
-                src={`https://maps.google.com/maps?q=${destination}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
-                allowFullScreen>
-              </iframe>
-            </div>
-          )}
         </div>
 
         <div className="map">
