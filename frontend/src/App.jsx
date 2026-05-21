@@ -18,6 +18,11 @@ function App() {
 
   // Modals
   const [commentsModal, setCommentsModal] = useState({ show: false, data: null, comments: [], hotelName: '', hotelId: null })
+  const [adminTab, setAdminTab] = useState('availability')
+  const [newHotelForm, setNewHotelForm] = useState({
+    name: '', city: '', address: '', latitude: '', longitude: '', stars: 5,
+    amenities: '', room: { roomType: 'Standard', basePrice: 100, capacity: 2 }
+  })
   const [showCommentForm, setShowCommentForm] = useState(false)
   const [commentForm, setCommentForm] = useState({
     commentText: '',
@@ -146,6 +151,42 @@ function App() {
     } catch (err) {
       console.error(err)
       alert("Failed to load comments")
+    }
+  }
+
+  const handleAddHotel = async (e) => {
+    e.preventDefault()
+    try {
+      const res = await fetch(`${API_URL}/api/v1/admin/hotels`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          name: newHotelForm.name,
+          city: newHotelForm.city,
+          address: newHotelForm.address,
+          latitude: parseFloat(newHotelForm.latitude) || 0,
+          longitude: parseFloat(newHotelForm.longitude) || 0,
+          stars: parseFloat(newHotelForm.stars),
+          amenities: newHotelForm.amenities.split(',').map(a => a.trim()).filter(Boolean),
+          rooms: [{
+            roomType: newHotelForm.room.roomType,
+            basePrice: parseFloat(newHotelForm.room.basePrice),
+            capacity: parseInt(newHotelForm.room.capacity)
+          }]
+        })
+      })
+      if (res.ok) {
+        const hotel = await res.json()
+        alert(`Hotel "${hotel.name}" created!`)
+        setNewHotelForm({ name: '', city: '', address: '', latitude: '', longitude: '', stars: 5, amenities: '', room: { roomType: 'Standard', basePrice: 100, capacity: 2 } })
+        fetchAdminHotels()
+        setAdminTab('availability')
+      } else {
+        const err = await res.json()
+        alert(err.error || 'Failed to create hotel')
+      }
+    } catch (err) {
+      alert('An error occurred')
     }
   }
 
@@ -297,12 +338,76 @@ function App() {
       {/* Admin Modal */}
       {showAdmin && isAdmin && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 }}>
-          <div className="glass-card" style={{ width: '550px' }}>
+          <div className="glass-card" style={{ width: '580px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <h2>Hotel Admin Panel</h2>
               <button onClick={() => setShowAdmin(false)} style={{ background: 'transparent' }}>X</button>
             </div>
-            <p style={{marginBottom: '1rem', color: 'var(--text-muted)'}}>Add/Update rooms for availability</p>
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              <button type="button" onClick={() => setAdminTab('availability')} style={{ flex: 1, background: adminTab === 'availability' ? 'var(--primary)' : 'transparent', border: '1px solid var(--primary)', color: 'white' }}>
+                Müsaitlik Güncelle
+              </button>
+              <button type="button" onClick={() => setAdminTab('addHotel')} style={{ flex: 1, background: adminTab === 'addHotel' ? 'var(--accent)' : 'transparent', border: '1px solid var(--accent)', color: 'white' }}>
+                Yeni Otel Ekle
+              </button>
+            </div>
+
+            {adminTab === 'addHotel' ? (
+              <form onSubmit={handleAddHotel} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div className="input-group" style={{ flex: 2 }}>
+                    <label>Otel Adı</label>
+                    <input type="text" required placeholder="Grand Vienna Hotel" value={newHotelForm.name} onChange={e => setNewHotelForm({...newHotelForm, name: e.target.value})} />
+                  </div>
+                  <div className="input-group" style={{ flex: 1 }}>
+                    <label>Yıldız</label>
+                    <input type="number" min="1" max="5" step="0.5" required value={newHotelForm.stars} onChange={e => setNewHotelForm({...newHotelForm, stars: e.target.value})} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div className="input-group" style={{ flex: 1 }}>
+                    <label>Şehir</label>
+                    <input type="text" required placeholder="Istanbul" value={newHotelForm.city} onChange={e => setNewHotelForm({...newHotelForm, city: e.target.value})} />
+                  </div>
+                  <div className="input-group" style={{ flex: 2 }}>
+                    <label>Adres</label>
+                    <input type="text" required placeholder="Atatürk Cad. No:1" value={newHotelForm.address} onChange={e => setNewHotelForm({...newHotelForm, address: e.target.value})} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div className="input-group" style={{ flex: 1 }}>
+                    <label>Latitude</label>
+                    <input type="number" step="any" placeholder="41.0082" value={newHotelForm.latitude} onChange={e => setNewHotelForm({...newHotelForm, latitude: e.target.value})} />
+                  </div>
+                  <div className="input-group" style={{ flex: 1 }}>
+                    <label>Longitude</label>
+                    <input type="number" step="any" placeholder="28.9784" value={newHotelForm.longitude} onChange={e => setNewHotelForm({...newHotelForm, longitude: e.target.value})} />
+                  </div>
+                </div>
+                <div className="input-group">
+                  <label>Olanaklar (virgülle ayır)</label>
+                  <input type="text" placeholder="Free Wi-Fi, Pool, Breakfast" value={newHotelForm.amenities} onChange={e => setNewHotelForm({...newHotelForm, amenities: e.target.value})} />
+                </div>
+                <hr style={{ border: 'none', borderTop: '1px solid var(--glass-border)' }} />
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>İlk Oda</p>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div className="input-group" style={{ flex: 1 }}>
+                    <label>Oda Tipi</label>
+                    <input type="text" required placeholder="Standard" value={newHotelForm.room.roomType} onChange={e => setNewHotelForm({...newHotelForm, room: {...newHotelForm.room, roomType: e.target.value}})} />
+                  </div>
+                  <div className="input-group" style={{ flex: 1 }}>
+                    <label>Fiyat ($/gece)</label>
+                    <input type="number" required min="1" value={newHotelForm.room.basePrice} onChange={e => setNewHotelForm({...newHotelForm, room: {...newHotelForm.room, basePrice: e.target.value}})} />
+                  </div>
+                  <div className="input-group" style={{ flex: 1 }}>
+                    <label>Kapasite</label>
+                    <input type="number" required min="1" value={newHotelForm.room.capacity} onChange={e => setNewHotelForm({...newHotelForm, room: {...newHotelForm.room, capacity: e.target.value}})} />
+                  </div>
+                </div>
+                <button type="submit" style={{ background: 'var(--accent)' }}>Otel Ekle</button>
+              </form>
+            ) : (
             <form onSubmit={handleAdminSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {/* Hotel Selection */}
               <div className="input-group">
@@ -370,6 +475,7 @@ function App() {
               )}
               <button type="submit">DÜZELT (Update)</button>
             </form>
+            )}
           </div>
         </div>
       )}
