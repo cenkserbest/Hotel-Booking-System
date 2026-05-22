@@ -32,8 +32,9 @@ function App() {
   const [adminTab, setAdminTab] = useState('availability')
   const [newHotelForm, setNewHotelForm] = useState({
     name: '', city: '', address: '', latitude: '', longitude: '', stars: 5,
-    amenities: '', room: { roomType: 'Standard', basePrice: 100, capacity: 2 }
+    amenities: '', rooms: [{ roomType: 'Standard', basePrice: 100, capacity: 2 }]
   })
+  const [selectedDetailRoomId, setSelectedDetailRoomId] = useState(null)
   const [hotelImageFile, setHotelImageFile] = useState(null)
   const [updateImageFile, setUpdateImageFile] = useState(null)
   const [updateImageHotelId, setUpdateImageHotelId] = useState('')
@@ -195,17 +196,17 @@ function App() {
           stars: parseFloat(newHotelForm.stars),
           amenities: newHotelForm.amenities.split(',').map(a => a.trim()).filter(Boolean),
           imageUrl,
-          rooms: [{
-            roomType: newHotelForm.room.roomType,
-            basePrice: parseFloat(newHotelForm.room.basePrice),
-            capacity: parseInt(newHotelForm.room.capacity)
-          }]
+          rooms: newHotelForm.rooms.map(r => ({
+            roomType: r.roomType,
+            basePrice: parseFloat(r.basePrice),
+            capacity: parseInt(r.capacity)
+          }))
         })
       })
       if (res.ok) {
         const hotel = await res.json()
         alert(`Hotel "${hotel.name}" created!`)
-        setNewHotelForm({ name: '', city: '', address: '', latitude: '', longitude: '', stars: 5, amenities: '', room: { roomType: 'Standard', basePrice: 100, capacity: 2 } })
+        setNewHotelForm({ name: '', city: '', address: '', latitude: '', longitude: '', stars: 5, amenities: '', rooms: [{ roomType: 'Standard', basePrice: 100, capacity: 2 }] })
         setHotelImageFile(null)
         fetchAdminHotels()
         setAdminTab('availability')
@@ -452,21 +453,43 @@ function App() {
                   {hotelImageFile && <p style={{ color: '#10b981', fontSize: '0.8rem', marginTop: '0.3rem' }}>Seçildi: {hotelImageFile.name}</p>}
                 </div>
                 <hr style={{ border: 'none', borderTop: '1px solid var(--glass-border)' }} />
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>İlk Oda</p>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <div className="input-group" style={{ flex: 1 }}>
-                    <label>Oda Tipi</label>
-                    <input type="text" required placeholder="Standard" value={newHotelForm.room.roomType} onChange={e => setNewHotelForm({...newHotelForm, room: {...newHotelForm.room, roomType: e.target.value}})} />
-                  </div>
-                  <div className="input-group" style={{ flex: 1 }}>
-                    <label>Fiyat ($/gece)</label>
-                    <input type="number" required min="1" value={newHotelForm.room.basePrice} onChange={e => setNewHotelForm({...newHotelForm, room: {...newHotelForm.room, basePrice: e.target.value}})} />
-                  </div>
-                  <div className="input-group" style={{ flex: 1 }}>
-                    <label>Kapasite</label>
-                    <input type="number" required min="1" value={newHotelForm.room.capacity} onChange={e => setNewHotelForm({...newHotelForm, room: {...newHotelForm.room, capacity: e.target.value}})} />
-                  </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>Odalar</p>
+                  <button type="button"
+                    onClick={() => setNewHotelForm(f => ({ ...f, rooms: [...f.rooms, { roomType: 'Standard', basePrice: 100, capacity: 2 }] }))}
+                    style={{ background: 'transparent', border: '1px solid var(--primary)', color: 'var(--primary)', padding: '0.3rem 0.7rem', fontSize: '0.82rem', borderRadius: '6px' }}>
+                    + Oda Ekle
+                  </button>
                 </div>
+                {newHotelForm.rooms.map((room, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end' }}>
+                    <div className="input-group" style={{ flex: 1 }}>
+                      {idx === 0 && <label>Oda Tipi</label>}
+                      <select value={room.roomType}
+                        onChange={e => { const rooms = [...newHotelForm.rooms]; rooms[idx] = { ...rooms[idx], roomType: e.target.value }; setNewHotelForm(f => ({ ...f, rooms })) }}
+                        style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid var(--glass-border)', color: 'white', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '1rem', width: '100%' }}>
+                        {['Standard', 'Single', 'Double', 'Deluxe', 'Suite', 'Family', 'Penthouse'].map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div className="input-group" style={{ flex: 1 }}>
+                      {idx === 0 && <label>Fiyat ($/gece)</label>}
+                      <input type="number" required min="1" value={room.basePrice}
+                        onChange={e => { const rooms = [...newHotelForm.rooms]; rooms[idx] = { ...rooms[idx], basePrice: e.target.value }; setNewHotelForm(f => ({ ...f, rooms })) }} />
+                    </div>
+                    <div className="input-group" style={{ flex: 1 }}>
+                      {idx === 0 && <label>Kapasite</label>}
+                      <input type="number" required min="1" value={room.capacity}
+                        onChange={e => { const rooms = [...newHotelForm.rooms]; rooms[idx] = { ...rooms[idx], capacity: e.target.value }; setNewHotelForm(f => ({ ...f, rooms })) }} />
+                    </div>
+                    {newHotelForm.rooms.length > 1 && (
+                      <button type="button"
+                        onClick={() => setNewHotelForm(f => ({ ...f, rooms: f.rooms.filter((_, i) => i !== idx) }))}
+                        style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', padding: '0.75rem 0.6rem', borderRadius: '8px', flexShrink: 0, marginBottom: idx === 0 ? '0' : '0' }}>
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
                 <button type="submit" style={{ background: 'var(--accent)' }}>Otel Ekle</button>
               </form>
             ) : (
@@ -709,7 +732,7 @@ function App() {
           <div className="glass-card" style={{ width: '800px', maxWidth: '95vw', padding: '2rem', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <h2>{detailModal.hotel.name}</h2>
-              <button onClick={() => setDetailModal({ show: false, hotel: null })} style={{ background: 'transparent' }}>X</button>
+              <button onClick={() => { setDetailModal({ show: false, hotel: null }); setSelectedDetailRoomId(null) }} style={{ background: 'transparent' }}>X</button>
             </div>
             
             <div style={{ width: '100%', height: '300px', background: `url(${detailModal.hotel.imageUrl || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80'}) center/cover`, borderRadius: '12px', marginBottom: '1rem' }}></div>
@@ -741,11 +764,30 @@ function App() {
               
               <div style={{ flex: 1, background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {detailModal.hotel.rooms && detailModal.hotel.rooms.length > 0 && (() => {
-                  const pricePerNight = detailModal.hotel.rooms[0].basePrice;
+                  const activeRoom = detailModal.hotel.rooms.find(r => r.id === selectedDetailRoomId) || detailModal.hotel.rooms[0];
+                  const pricePerNight = activeRoom.basePrice;
                   const nights = startDate && endDate ? Math.max(1, Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24))) : 1;
                   const totalPrice = parseFloat((pricePerNight * nights).toFixed(2));
                   return (
                     <>
+                      {/* Room Type Selector */}
+                      {detailModal.hotel.rooms.length > 1 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: 0 }}>Oda Tipi Seçin</p>
+                          {detailModal.hotel.rooms.map(room => (
+                            <div key={room.id} onClick={() => setSelectedDetailRoomId(room.id)}
+                              style={{
+                                padding: '0.55rem 0.8rem', borderRadius: '8px', cursor: 'pointer',
+                                border: `1px solid ${activeRoom.id === room.id ? 'var(--primary)' : 'var(--glass-border)'}`,
+                                background: activeRoom.id === room.id ? 'rgba(79,70,229,0.15)' : 'rgba(255,255,255,0.03)',
+                                display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.88rem'
+                              }}>
+                              <span>{room.roomType} <span style={{ color: 'var(--text-muted)' }}>· {room.capacity} kişi</span></span>
+                              <span style={{ fontWeight: '600' }}>${room.basePrice.toFixed(2)}/gece</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       {/* Booking Summary */}
                       <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.9rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -774,7 +816,7 @@ function App() {
                         {session && <div style={{ color: '#10b981', fontSize: '0.9rem', marginTop: '0.2rem' }}>Member Price: 15% off applied</div>}
                       </div>
                       <button
-                        onClick={() => handleBook(detailModal.hotel.id, detailModal.hotel.rooms[0].id, startDate, endDate)}
+                        onClick={() => handleBook(detailModal.hotel.id, activeRoom.id, startDate, endDate)}
                         style={{ padding: '1rem', fontSize: '1.1rem' }}
                       >
                         Rezervasyon Yap (Book Now)
