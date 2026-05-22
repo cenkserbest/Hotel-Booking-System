@@ -61,6 +61,7 @@ const swaggerSpec = swaggerJsdoc({
         post: {
           tags: ['Hotels'],
           summary: 'Book a hotel room (auth required)',
+          description: 'Total price is calculated server-side (basePrice × nights × 0.85 discount). Do not send totalPrice.',
           security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
@@ -68,13 +69,12 @@ const swaggerSpec = swaggerJsdoc({
               'application/json': {
                 schema: {
                   type: 'object',
-                  required: ['hotelId', 'roomId', 'startDate', 'endDate', 'totalPrice'],
+                  required: ['hotelId', 'roomId', 'startDate', 'endDate'],
                   properties: {
                     hotelId: { type: 'integer' },
                     roomId: { type: 'integer' },
-                    startDate: { type: 'string', format: 'date' },
-                    endDate: { type: 'string', format: 'date' },
-                    totalPrice: { type: 'number' }
+                    startDate: { type: 'string', format: 'date', example: '2026-06-01' },
+                    endDate: { type: 'string', format: 'date', example: '2026-06-05' }
                   }
                 }
               }
@@ -82,8 +82,10 @@ const swaggerSpec = swaggerJsdoc({
           },
           responses: {
             201: { description: 'Booking created successfully' },
+            400: { description: 'Missing fields or invalid dates' },
             401: { description: 'Unauthorized' },
-            409: { description: 'Room not available for selected dates' },
+            404: { description: 'Room not found' },
+            409: { description: 'Room not available for selected dates (capacity full)' },
             500: { description: 'Internal server error' }
           }
         }
@@ -179,7 +181,12 @@ const swaggerSpec = swaggerJsdoc({
               }
             }
           },
-          responses: { 200: { description: 'Availability updated' }, 401: { description: 'Unauthorized' }, 403: { description: 'Forbidden' } }
+          responses: {
+            200: { description: 'Availability updated' },
+            401: { description: 'Unauthorized' },
+            403: { description: 'Forbidden' },
+            409: { description: 'Cannot reduce totalRooms below existing bookedRooms for a date in range' }
+          }
         }
       },
       '/comments/hotel/{hotelId}': {
@@ -241,7 +248,9 @@ const swaggerSpec = swaggerJsdoc({
                   required: ['message'],
                   properties: {
                     message: { type: 'string', example: 'Find hotels in Istanbul for 2 adults from June 1 to June 5' },
-                    history: { type: 'array', items: { type: 'object' } }
+                    history: { type: 'array', items: { type: 'object' }, description: 'Conversation history (role/content pairs)' },
+                    user_id: { type: 'string', description: 'User ID (optional, for booking auth)' },
+                    access_token: { type: 'string', description: 'JWT access token (required for AI-driven booking)' }
                   }
                 }
               }
