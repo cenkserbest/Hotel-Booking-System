@@ -16,6 +16,7 @@ function App() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showAuth, setShowAuth] = useState(false)
+  const [authMode, setAuthMode] = useState('login')
 
   // Search State
   const [destination, setDestination] = useState('')
@@ -79,15 +80,20 @@ function App() {
     e.preventDefault()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
-      const msg = error.message.toLowerCase()
-      if (msg.includes('invalid login credentials') || msg.includes('invalid credentials') || msg.includes('wrong password') || msg.includes('email not confirmed')) {
-        alert('Hatalı e-posta veya şifre.')
-        return
-      }
-      const { error: signUpError } = await supabase.auth.signUp({ email, password })
-      if (signUpError) alert(signUpError.message)
-      else alert('Kayıt başarılı! E-postanızı doğrulamak için e-postanızı kontrol edin.')
+      alert('Hatalı e-posta veya şifre.')
+      return
     }
+    setShowAuth(false)
+  }
+
+  const handleSignup = async (e) => {
+    e.preventDefault()
+    const { error } = await supabase.auth.signUp({ email, password })
+    if (error) {
+      alert(error.message)
+      return
+    }
+    alert('Kayıt başarılı! Gelen kutunuzu kontrol edin ve e-postanızı doğrulayın.')
     setShowAuth(false)
   }
 
@@ -402,11 +408,23 @@ function App() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 }}>
           <div className="glass-card" style={{ width: '400px' }}>
             <h2>Welcome to Lumina</h2>
-            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', marginBottom: '1rem' }}>
+              <button
+                type="button"
+                onClick={() => setAuthMode('login')}
+                style={{ flex: 1, opacity: authMode === 'login' ? 1 : 0.45 }}
+              >Giriş Yap</button>
+              <button
+                type="button"
+                onClick={() => setAuthMode('signup')}
+                style={{ flex: 1, opacity: authMode === 'signup' ? 1 : 0.45 }}
+              >Kayıt Ol</button>
+            </div>
+            <form onSubmit={authMode === 'login' ? handleLogin : handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
               <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
-              <button type="submit">Login / Sign Up</button>
-              <button type="button" onClick={() => setShowAuth(false)} style={{ background: 'transparent', border: '1px solid var(--glass-border)' }}>Cancel</button>
+              <button type="submit">{authMode === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}</button>
+              <button type="button" onClick={() => setShowAuth(false)} style={{ background: 'transparent', border: '1px solid var(--glass-border)' }}>İptal</button>
             </form>
           </div>
         </div>
