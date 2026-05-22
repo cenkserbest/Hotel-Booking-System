@@ -81,17 +81,18 @@ app.get('/api/hotels/search', extractUserId, async (req, res) => {
     const numAdults = parseInt(adults);
     const pageNum = Math.max(1, parseInt(page));
     const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
+    const normalizedCity = city.trim().toLowerCase();
 
     // Cache-Aside for search results (5 min TTL)
-    const searchCacheKey = `search:${city}:${startDate}:${endDate}:${adults}:${pageNum}:${limitNum}:${req.userId || 'guest'}`;
+    const searchCacheKey = `search:${normalizedCity}:${startDate}:${endDate}:${adults}:${pageNum}:${limitNum}:${req.userId || 'guest'}`;
     const cachedSearch = await redisClient.get(searchCacheKey);
     if (cachedSearch) {
       return res.json(JSON.parse(cachedSearch));
     }
 
-    // Get hotels in city
+    // Get hotels in city (case-insensitive)
     const hotels = await prisma.hotel.findMany({
-      where: { city: city, isActive: true },
+      where: { city: { equals: normalizedCity, mode: 'insensitive' }, isActive: true },
       include: {
         rooms: {
           where: { capacity: { gte: numAdults } },
@@ -182,17 +183,27 @@ app.post('/api/hotels/book', extractUserId, async (req, res) => {
   if (!req.userId) return res.status(401).json({ error: "Unauthorized" });
 
   const { hotelId, roomId, startDate, endDate } = req.body;
+
+  if (!hotelId || !roomId || !startDate || !endDate) {
+    return res.status(400).json({ error: "Missing required fields." });
+  }
+
   const start = new Date(startDate);
   const end = new Date(endDate);
+  const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+
+  if (isNaN(start) || isNaN(end) || nights < 1) {
+    return res.status(400).json({ error: "Invalid dates. Check-out must be after check-in." });
+  }
 
   try {
     // Transaction: Create booking and decrease capacity
     const result = await prisma.$transaction(async (tx) => {
-      // Fetch room to calculate price on backend
+      // Fetch room and verify it belongs to the given hotel
       const room = await tx.room.findUnique({ where: { id: parseInt(roomId) } });
       if (!room) throw new Error('ROOM_NOT_FOUND');
+      if (room.hotelId !== parseInt(hotelId)) throw new Error('ROOM_NOT_FOUND');
 
-      const nights = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24));
       let calculatedPrice = room.basePrice * nights;
       if (req.userId) calculatedPrice = calculatedPrice * 0.85;
 
@@ -208,33 +219,19 @@ app.post('/api/hotels/book', extractUserId, async (req, res) => {
         }
       });
 
-      // Update room availabilities for the date range
-      const diffTime = Math.abs(end - start);
-      const requiredDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      for (let i = 0; i < requiredDays; i++) {
+      // Atomic check-and-increment: prevents race conditions under concurrent bookings
+      for (let i = 0; i < nights; i++) {
         const currentDate = new Date(start);
         currentDate.setDate(currentDate.getDate() + i);
 
-        const availability = await tx.roomAvailability.findUnique({
-          where: { roomId_date: { roomId: parseInt(roomId), date: currentDate } }
-        });
+        const updated = await tx.$executeRaw`
+          UPDATE "RoomAvailability"
+          SET "bookedRooms" = "bookedRooms" + 1
+          WHERE "roomId" = ${parseInt(roomId)} AND date = ${currentDate}
+          AND "bookedRooms" < "totalRooms"
+        `;
 
-        if (!availability || availability.bookedRooms >= availability.totalRooms) {
-          throw new Error('CAPACITY_FULL');
-        }
-
-        await tx.roomAvailability.update({
-          where: {
-            roomId_date: {
-              roomId: parseInt(roomId),
-              date: currentDate
-            }
-          },
-          data: {
-            bookedRooms: { increment: 1 }
-          }
-        });
+        if (updated === 0) throw new Error('CAPACITY_FULL');
       }
 
       return booking;
