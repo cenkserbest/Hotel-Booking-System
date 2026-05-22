@@ -311,7 +311,10 @@ function App() {
         })
       })
       if (res.ok) alert("Availability updated successfully!")
-      else alert("Failed to update availability")
+      else {
+        const err = await res.json()
+        alert(err.error || "Failed to update availability")
+      }
     } catch (err) {
       alert("Error updating availability")
     }

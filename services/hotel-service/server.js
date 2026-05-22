@@ -323,15 +323,37 @@ app.post('/api/admin/rooms/:roomId/availability', extractUserId, requireAdmin, a
   try {
     const diffTime = Math.abs(end - start);
     const requiredDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    for (let i = 0; i < requiredDays; i++) {
-      const currentDate = new Date(start);
-      currentDate.setDate(currentDate.getDate() + i);
 
+    const dates = Array.from({ length: requiredDays }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+
+    // Check existing bookings before applying any update
+    const conflictingDate = await (async () => {
+      for (const date of dates) {
+        const existing = await prisma.roomAvailability.findUnique({
+          where: { roomId_date: { roomId, date } }
+        });
+        if (existing && totalRooms < existing.bookedRooms) {
+          return { date: date.toISOString().split('T')[0], bookedRooms: existing.bookedRooms };
+        }
+      }
+      return null;
+    })();
+
+    if (conflictingDate) {
+      return res.status(409).json({
+        error: `Cannot set totalRooms to ${totalRooms} — ${conflictingDate.date} already has ${conflictingDate.bookedRooms} active bookings.`
+      });
+    }
+
+    for (const date of dates) {
       await prisma.roomAvailability.upsert({
-        where: { roomId_date: { roomId, date: currentDate } },
+        where: { roomId_date: { roomId, date } },
         update: { totalRooms },
-        create: { roomId, date: currentDate, totalRooms }
+        create: { roomId, date, totalRooms }
       });
     }
 
