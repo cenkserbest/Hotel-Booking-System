@@ -229,52 +229,65 @@ Endpoints that support pagination return:
 
 ---
 
-## ER Diagram (PostgreSQL)
+## ER Diagram
 
-```
-Hotel
-├── id (PK)
-├── name, city, address
-├── latitude, longitude
-├── stars, amenities (JSON)
-├── isActive
-└── rooms[] ──────────────────────────────┐
-                                          │
-Room                                      │
-├── id (PK)                               │
-├── hotelId (FK → Hotel) ◄────────────────┘
-├── roomType, basePrice, capacity
-├── availabilities[] ─────────────────────┐
-└── bookings[] ────────────────────────────────────┐
-                                          │        │
-RoomAvailability                          │        │
-├── id (PK)                               │        │
-├── roomId (FK → Room) ◄──────────────────┘        │
-├── date                                            │
-├── totalRooms, bookedRooms                         │
-└── UNIQUE(roomId, date)                            │
-                                                    │
-Booking                                             │
-├── id (PK)                                         │
-├── hotelId (FK → Hotel)                            │
-├── roomId (FK → Room) ◄─────────────────────────── ┘
-├── userId (from Supabase)
-├── startDate, endDate
-└── totalPrice
+```mermaid
+erDiagram
+    Hotel {
+        Int id PK
+        String name
+        String city
+        String address
+        Float latitude
+        Float longitude
+        Float stars
+        Json amenities
+        Boolean isActive
+    }
+    Room {
+        Int id PK
+        Int hotelId FK
+        String roomType
+        Float basePrice
+        Int capacity
+    }
+    RoomAvailability {
+        Int id PK
+        Int roomId FK
+        DateTime date
+        Int totalRooms
+        Int bookedRooms
+    }
+    Booking {
+        Int id PK
+        Int hotelId FK
+        Int roomId FK
+        String userId
+        DateTime startDate
+        DateTime endDate
+        Float totalPrice
+        DateTime createdAt
+    }
+    Comment {
+        ObjectId _id PK
+        Int hotelId
+        String userId
+        String userName
+        String commentText
+        Json ratings
+        Float overallRating
+        DateTime createdAt
+    }
+
+    Hotel ||--o{ Room : "has"
+    Room ||--o{ RoomAvailability : "has"
+    Room ||--o{ Booking : "has"
+    Hotel ||--o{ Booking : "has"
+    Hotel ||--o{ Comment : "has (MongoDB)"
 ```
 
-**MongoDB — Comments collection:**
-```
-Comment
-├── _id
-├── hotelId (Number, references Hotel.id in Postgres)
-├── userId, userName
-├── commentText
-├── ratings { temizlik, personelVeServis, imkanVeOzellikler,
-│             konaklamaYerininDurumu, cevreDostlugu }  (1–10)
-├── overallRating (auto-calculated avg)
-└── createdAt
-```
+> `Hotel`, `Room`, `RoomAvailability`, `Booking` → PostgreSQL (Prisma)
+> `Comment` → MongoDB (Mongoose) — `hotelId` ile Hotel'e soft referans
 
 ---
 
