@@ -53,8 +53,6 @@ Hotel Service (RabbitMQ)
         ▼ consume (real-time)
 Notification Service → logs reservation confirmation
 ```
-| AI Agent Service | https://ai-agent-service-fmfgczbbhhdsh5du.austriaeast-01.azurewebsites.net |
-| Notification Service | https://notification-service-gwbyexhag9h4gvdf.austriaeast-01.azurewebsites.net |
 
 ---
 
@@ -189,7 +187,8 @@ All endpoints are prefixed with `/api/v1/`. The gateway strips `/v1` before forw
 | POST | `/api/v1/hotels/book` | Required | Create booking (Prisma transaction + RabbitMQ event) |
 | GET | `/api/v1/admin/hotels` | Admin | List all hotels with rooms |
 | POST | `/api/v1/admin/hotels` | Admin | Create new hotel with rooms |
-| POST | `/api/v1/admin/rooms/:roomId/availability` | Admin | Set room availability for a date range |
+| PATCH | `/api/v1/admin/hotels/:id` | Admin | Update hotel image URL |
+| POST | `/api/v1/admin/rooms/:roomId/availability` | Admin | Set room availability for a date range (rejects if new totalRooms < existing bookedRooms) |
 
 ### Comments Service
 
@@ -299,9 +298,9 @@ erDiagram
 
 3. **Guest count (adults) is not stored in the booking record** — The `adults` parameter is used only at search time to filter rooms by capacity (`capacity >= adults`). It is not persisted in the `Booking` table because the room's own `capacity` field already captures the constraint. Any room returned by search is already guaranteed to accommodate the requested number of guests.
 
-4. **"Haritada göster" is implemented per hotel in the detail modal** — The requirement asks for hotels found in search to be shown on a map. We implemented this as an embedded Google Maps iframe inside each hotel's detail modal (using the hotel's `latitude`/`longitude` coordinates), rather than a unified map overlay of all search results. This avoids the need for a paid Maps API key while still fulfilling the location display requirement.
+4. **"Haritada göster" is implemented as a unified map over all search results** — After a search, a "Haritada Göster" toggle button appears above the results. Clicking it renders a Leaflet/OpenStreetMap map with a marker for every returned hotel. Each marker opens a popup with hotel name, star rating, price per night, and a "Detayları Gör" button. No paid API key is required (OpenStreetMap tiles are free). The list view is restored by clicking "Listeyi Göster".
 
-5. **First matching room is auto-selected for booking** — When a user opens a hotel detail and clicks "Book", the system automatically selects the first room (`rooms[0]`) from the search results. All returned rooms already satisfy the capacity and availability filters, so any selection is valid. A room-type chooser UI was considered out of scope for this implementation.
+5. **Room type is selectable in the detail modal** — When a hotel has multiple room types, the detail modal displays a room-type selector (clickable cards showing room type, capacity, and price). The booking request uses the selected room's ID. In the admin "Yeni Otel Ekle" form, room types are also chosen from a predefined dropdown (`Standard`, `Single`, `Double`, `Deluxe`, `Suite`, `Family`, `Penthouse`) with support for adding multiple room rows.
 
 6. **Comments are not tied to verified stays** — Any authenticated user can leave a comment on any hotel. Verification of an actual completed booking before allowing a review is not implemented. This simplification was chosen because the requirement only specifies "ratings" and "distribution of comments per service", with no mention of stay verification.
 
