@@ -308,6 +308,20 @@ app.post('/api/v1/admin/hotels', verifyTokenRequired, createProxyMiddleware({
   }
 }));
 
+app.patch('/api/v1/admin/hotels/:id', verifyTokenRequired, createProxyMiddleware({
+  target: HOTEL_SERVICE_URL,
+  changeOrigin: true,
+  pathRewrite: { '^/api/v1': '/api' },
+  on: {
+    proxyReq: (proxyReq, req, res) => {
+      if (req.user && req.user.id) {
+        proxyReq.setHeader('x-user-id', req.user.id);
+        proxyReq.setHeader('x-user-role', req.user.role || 'user');
+      }
+    }
+  }
+}));
+
 app.post('/api/v1/admin/rooms/:roomId/availability', verifyTokenRequired, createProxyMiddleware({
   target: HOTEL_SERVICE_URL,
   changeOrigin: true,

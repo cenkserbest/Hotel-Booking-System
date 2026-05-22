@@ -35,6 +35,8 @@ function App() {
     amenities: '', room: { roomType: 'Standard', basePrice: 100, capacity: 2 }
   })
   const [hotelImageFile, setHotelImageFile] = useState(null)
+  const [updateImageFile, setUpdateImageFile] = useState(null)
+  const [updateImageHotelId, setUpdateImageHotelId] = useState('')
   const [showCommentForm, setShowCommentForm] = useState(false)
   const [commentForm, setCommentForm] = useState({
     commentText: '',
@@ -242,6 +244,34 @@ function App() {
     }
   }
 
+  const handleUpdateHotelImage = async (e) => {
+    e.preventDefault()
+    if (!updateImageFile || !updateImageHotelId) return
+    try {
+      const fileExt = updateImageFile.name.split('.').pop()
+      const fileName = `${Date.now()}.${fileExt}`
+      const { error: uploadError } = await supabase.storage
+        .from('hotel-images')
+        .upload(fileName, updateImageFile, { upsert: false })
+      if (uploadError) { alert('Fotoğraf yüklenemedi: ' + uploadError.message); return }
+      const { data: { publicUrl } } = supabase.storage.from('hotel-images').getPublicUrl(fileName)
+      const res = await fetch(`${API_URL}/api/v1/admin/hotels/${updateImageHotelId}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ imageUrl: publicUrl })
+      })
+      if (res.ok) {
+        alert('Fotoğraf güncellendi!')
+        setUpdateImageFile(null)
+        setUpdateImageHotelId('')
+      } else {
+        alert('Güncelleme başarısız.')
+      }
+    } catch (err) {
+      alert('Bir hata oluştu.')
+    }
+  }
+
   const fetchAdminHotels = async () => {
     try {
       const res = await fetch(`${API_URL}/api/v1/admin/hotels`, { headers: getHeaders() })
@@ -440,6 +470,7 @@ function App() {
                 <button type="submit" style={{ background: 'var(--accent)' }}>Otel Ekle</button>
               </form>
             ) : (
+            <>
             <form onSubmit={handleAdminSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {/* Hotel Selection */}
               <div className="input-group">
@@ -507,6 +538,32 @@ function App() {
               )}
               <button type="submit">DÜZELT (Update)</button>
             </form>
+
+            {/* Hotel Image Update */}
+            <hr style={{ border: 'none', borderTop: '1px solid var(--glass-border)', margin: '1.5rem 0' }} />
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.75rem' }}>Mevcut Otelin Fotoğrafını Güncelle</p>
+            <form onSubmit={handleUpdateHotelImage} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <select
+                value={updateImageHotelId}
+                onChange={e => setUpdateImageHotelId(e.target.value)}
+                required
+                style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid var(--glass-border)', color: 'white', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '1rem' }}
+              >
+                <option value="">-- Otel Seçin --</option>
+                {adminHotels.map(h => (
+                  <option key={h.id} value={h.id}>{h.name} — {h.city}</option>
+                ))}
+              </select>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                required
+                onChange={e => setUpdateImageFile(e.target.files[0] || null)}
+                style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid var(--glass-border)', color: 'white', padding: '0.6rem 1rem', borderRadius: '8px', fontSize: '0.9rem' }}
+              />
+              <button type="submit" style={{ background: 'var(--accent)' }}>Fotoğrafı Güncelle</button>
+            </form>
+            </>
             )}
           </div>
         </div>

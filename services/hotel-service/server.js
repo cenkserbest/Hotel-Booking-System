@@ -301,6 +301,22 @@ app.post('/api/admin/hotels', extractUserId, requireAdmin, async (req, res) => {
   }
 });
 
+app.patch('/api/admin/hotels/:id', extractUserId, requireAdmin, async (req, res) => {
+  const hotelId = parseInt(req.params.id);
+  const { imageUrl } = req.body;
+  try {
+    const hotel = await prisma.hotel.update({
+      where: { id: hotelId },
+      data: { imageUrl }
+    });
+    await redisClient.del(`hotel:${hotelId}:details`);
+    res.json(hotel);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update hotel image" });
+  }
+});
+
 app.post('/api/admin/rooms/:roomId/availability', extractUserId, requireAdmin, async (req, res) => {
   const roomId = parseInt(req.params.roomId);
   const { startDate, endDate, totalRooms } = req.body;
