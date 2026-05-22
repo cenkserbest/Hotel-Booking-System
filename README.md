@@ -300,7 +300,7 @@ erDiagram
 
 4. **"Haritada göster" is implemented as a unified map over all search results** — After a search, a "Haritada Göster" toggle button appears above the results. Clicking it renders a Leaflet/OpenStreetMap map with a marker for every returned hotel. Each marker opens a popup with hotel name, star rating, price per night, and a "Detayları Gör" button. No paid API key is required (OpenStreetMap tiles are free). The list view is restored by clicking "Listeyi Göster".
 
-5. **Room type is selectable in the detail modal** — When a hotel has multiple room types, the detail modal displays a room-type selector (clickable cards showing room type, capacity, and price). The booking request uses the selected room's ID. In the admin "Yeni Otel Ekle" form, room types are also chosen from a predefined dropdown (`Standard`, `Single`, `Double`, `Deluxe`, `Suite`, `Family`, `Penthouse`) with support for adding multiple room rows.
+5. **Room type is always shown and selectable in the detail modal** — The detail modal always displays a room-type selector (clickable cards showing room type, capacity, and price per night), regardless of how many room types the hotel has. This makes the selected room type visible even for single-room hotels. The booking request uses the selected room's ID. In the admin "Yeni Otel Ekle" form, room types are chosen from a predefined dropdown (`Standard`, `Single`, `Double`, `Deluxe`, `Suite`, `Family`, `Penthouse`) with support for adding multiple room rows.
 
 6. **Comments are not tied to verified stays** — Any authenticated user can leave a comment on any hotel. Verification of an actual completed booking before allowing a review is not implemented. This simplification was chosen because the requirement only specifies "ratings" and "distribution of comments per service", with no mention of stay verification.
 
@@ -308,7 +308,7 @@ erDiagram
 
 8. **Dual-database strategy** — PostgreSQL for transactional hotel/booking data (ACID guarantees), MongoDB for comments (flexible schema, aggregation pipeline for analytics).
 
-9. **Cache-Aside with Redis** — Hotel detail pages are cached for 1 hour; search results for 5 minutes keyed by city/dates/adults/user. Booking creation invalidates the relevant hotel detail cache but not search caches (acceptable staleness given the short TTL).
+9. **Cache-Aside with Redis** — Hotel detail pages are cached for 1 hour; search results for 5 minutes keyed by city/dates/adults/user. The hotel detail cache is invalidated when an admin updates the hotel image or changes room availability. Booking creation does not invalidate any cache, because the hotel detail cache stores only static hotel/room data (not live availability counts), so it does not go stale when a booking is made.
 
 10. **RabbitMQ for async notifications** — Booking creation publishes to `new_reservations_queue`. The notification service consumes this queue independently, decoupling the booking flow from email delivery latency.
 
