@@ -320,6 +320,18 @@ erDiagram
 
 14. **AI Agent tool-calling** — The agent uses Groq's `llama-3.1-8b-instant` with two tools: `search_hotels` (fetches from hotel service via gateway) and `book_hotel` (requires login; POSTs to booking endpoint on user confirmation). Real-time streaming is not used, as the requirement explicitly states it is not required.
 
+15. **Room availability definition for search** — A room is included in search results only if a `RoomAvailability` record exists for every date in the requested range and `bookedRooms < totalRooms` holds for each of those dates. If any date in the range has no availability record, or if the room is fully booked on any date, it is excluded from results. Admins must explicitly set availability for a date range via the admin panel before rooms appear in searches.
+
+16. **No payment processing** — The requirement explicitly states "NO transaction needed for payment." No payment system is implemented. Booking only creates a `Booking` record and decrements available capacity (`bookedRooms + 1`) for each date in the stay. Total price is calculated and stored for reference only.
+
+17. **Single global admin, not per-hotel admins** — The requirement mentions "hotel administrators" (plural, implying each hotel might have its own admin). In this implementation, there is a single global admin role that manages all hotels. The nightly capacity alert email is sent to a single pre-configured admin address, not to individual hotel owners. This simplification was chosen because the requirement does not specify a multi-tenant admin model or per-hotel user accounts.
+
+18. **Reservation notification recipient** — The requirement states the notification service should "send them a message about reservation details." "Them" is interpreted as the user who made the booking (not the hotel). The confirmation email sent via Resend contains the booking ID, hotel name, check-in/check-out dates, and total price.
+
+19. **"Distribution of comments per service" interpretation** — The phrase "per service" in the requirement is interpreted as per rating category, not per microservice. The comments graph shows a bar chart with average scores for each of the five rating categories: temizlik, personel ve servis, imkan ve özellikler, konaklama yeri durumu, çevre dostluğu (each rated 1–10).
+
+20. **"Dolu/Boş" admin toggle** — The admin panel mockup shows "Dolu" (full) and "Boş" (available) radio buttons. This is implemented by setting `totalRooms = 0` (Dolu) or a positive integer (Boş) for the selected date range. The backend rejects any request that would set `totalRooms` below the existing `bookedRooms` count for any date in the range, returning 409. This prevents admins from accidentally overbooking already-reserved rooms.
+
 ---
 
 ## Infrastructure Ports
