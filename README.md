@@ -308,7 +308,7 @@ erDiagram
 
 8. **Dual-database strategy** — PostgreSQL for transactional hotel/booking data (ACID guarantees), MongoDB for comments (flexible schema, aggregation pipeline for analytics).
 
-9. **Cache-Aside with Redis** — Hotel detail pages are cached for 1 hour; search results for 5 minutes keyed by city/dates/adults/user. The hotel detail cache is invalidated when an admin updates the hotel image or changes room availability. Booking creation does not invalidate any cache, because the hotel detail cache stores only static hotel/room data (not live availability counts), so it does not go stale when a booking is made.
+9. **Cache-Aside with Redis** — Hotel detail pages are cached for 1 hour (`GET /api/v1/hotels/:id`); search results for 5 minutes keyed by city/dates/adults/user. When a user opens a hotel detail modal, the frontend calls `GET /api/hotels/:id` to benefit from the Redis cache — static hotel fields (name, address, imageUrl, amenities, stars) are served from cache, while rooms are kept from the search result (already filtered by capacity and with 15% discount applied). The hotel detail cache is invalidated when an admin updates the hotel image or changes room availability. Booking creation does not invalidate any cache, because the hotel detail cache stores only static hotel/room data (not live availability counts), so it does not go stale when a booking is made.
 
 10. **RabbitMQ for async notifications** — Booking creation publishes to `new_reservations_queue`. The notification service consumes this queue independently, decoupling the booking flow from email delivery latency.
 
