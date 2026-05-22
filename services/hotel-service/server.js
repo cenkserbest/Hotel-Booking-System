@@ -284,10 +284,10 @@ app.get('/api/admin/hotels', extractUserId, requireAdmin, async (req, res) => {
 
 app.post('/api/admin/hotels', extractUserId, requireAdmin, async (req, res) => {
   try {
-    const { name, city, address, latitude, longitude, stars, amenities, rooms } = req.body;
+    const { name, city, address, latitude, longitude, stars, amenities, imageUrl, rooms } = req.body;
     const hotel = await prisma.hotel.create({
-      data: { 
-        name, city, address, latitude, longitude, stars, amenities,
+      data: {
+        name, city, address, latitude, longitude, stars, amenities, imageUrl,
         rooms: {
           create: rooms || []
         }

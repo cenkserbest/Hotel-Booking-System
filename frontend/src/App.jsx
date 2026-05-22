@@ -34,6 +34,7 @@ function App() {
     name: '', city: '', address: '', latitude: '', longitude: '', stars: 5,
     amenities: '', room: { roomType: 'Standard', basePrice: 100, capacity: 2 }
   })
+  const [hotelImageFile, setHotelImageFile] = useState(null)
   const [showCommentForm, setShowCommentForm] = useState(false)
   const [commentForm, setCommentForm] = useState({
     commentText: '',
@@ -165,6 +166,21 @@ function App() {
   const handleAddHotel = async (e) => {
     e.preventDefault()
     try {
+      let imageUrl = null
+      if (hotelImageFile) {
+        const fileExt = hotelImageFile.name.split('.').pop()
+        const fileName = `${Date.now()}.${fileExt}`
+        const { error: uploadError } = await supabase.storage
+          .from('hotel-images')
+          .upload(fileName, hotelImageFile, { upsert: false })
+        if (uploadError) {
+          alert('Fotoğraf yüklenemedi: ' + uploadError.message)
+          return
+        }
+        const { data: { publicUrl } } = supabase.storage.from('hotel-images').getPublicUrl(fileName)
+        imageUrl = publicUrl
+      }
+
       const res = await fetch(`${API_URL}/api/v1/admin/hotels`, {
         method: 'POST',
         headers: getHeaders(),
@@ -176,6 +192,7 @@ function App() {
           longitude: parseFloat(newHotelForm.longitude) || 0,
           stars: parseFloat(newHotelForm.stars),
           amenities: newHotelForm.amenities.split(',').map(a => a.trim()).filter(Boolean),
+          imageUrl,
           rooms: [{
             roomType: newHotelForm.room.roomType,
             basePrice: parseFloat(newHotelForm.room.basePrice),
@@ -187,6 +204,7 @@ function App() {
         const hotel = await res.json()
         alert(`Hotel "${hotel.name}" created!`)
         setNewHotelForm({ name: '', city: '', address: '', latitude: '', longitude: '', stars: 5, amenities: '', room: { roomType: 'Standard', basePrice: 100, capacity: 2 } })
+        setHotelImageFile(null)
         fetchAdminHotels()
         setAdminTab('availability')
       } else {
@@ -396,6 +414,12 @@ function App() {
                 <div className="input-group">
                   <label>Olanaklar (virgülle ayır)</label>
                   <input type="text" placeholder="Free Wi-Fi, Pool, Breakfast" value={newHotelForm.amenities} onChange={e => setNewHotelForm({...newHotelForm, amenities: e.target.value})} />
+                </div>
+                <div className="input-group">
+                  <label>Otel Fotoğrafı (opsiyonel)</label>
+                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setHotelImageFile(e.target.files[0] || null)}
+                    style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid var(--glass-border)', color: 'white', padding: '0.6rem 1rem', borderRadius: '8px', fontSize: '0.9rem' }} />
+                  {hotelImageFile && <p style={{ color: '#10b981', fontSize: '0.8rem', marginTop: '0.3rem' }}>Seçildi: {hotelImageFile.name}</p>}
                 </div>
                 <hr style={{ border: 'none', borderTop: '1px solid var(--glass-border)' }} />
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>İlk Oda</p>
@@ -631,7 +655,7 @@ function App() {
               <button onClick={() => setDetailModal({ show: false, hotel: null })} style={{ background: 'transparent' }}>X</button>
             </div>
             
-            <div style={{ width: '100%', height: '300px', background: 'url(https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80) center/cover', borderRadius: '12px', marginBottom: '1rem' }}></div>
+            <div style={{ width: '100%', height: '300px', background: `url(${detailModal.hotel.imageUrl || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80'}) center/cover`, borderRadius: '12px', marginBottom: '1rem' }}></div>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '2rem' }}>
               <div style={{ flex: 2 }}>
@@ -770,11 +794,14 @@ function App() {
           )}
 
           {!showMap && hotels.map(hotel => (
-            <div key={hotel.id} className="glass-card hotel-card" style={{marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: '0.2s'}} onClick={() => setDetailModal({ show: true, hotel })}>
-              <div>
-                <h4 style={{fontSize: '1.2rem'}}>{hotel.name}</h4>
-                <p style={{color: 'var(--text-muted)'}}>{hotel.city} • {hotel.stars ? `⭐ ${hotel.stars}` : 'No ratings yet'}</p>
-                {session && <span style={{color: '#10b981', fontSize: '0.9rem', fontWeight: 'bold'}}>15% Discount Applied!</span>}
+            <div key={hotel.id} className="glass-card hotel-card" style={{marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: '0.2s', overflow: 'hidden'}} onClick={() => setDetailModal({ show: true, hotel })}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ width: '80px', height: '80px', flexShrink: 0, borderRadius: '8px', background: `url(${hotel.imageUrl || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=200&q=80'}) center/cover` }} />
+                <div>
+                  <h4 style={{fontSize: '1.2rem'}}>{hotel.name}</h4>
+                  <p style={{color: 'var(--text-muted)'}}>{hotel.city} • {hotel.stars ? `⭐ ${hotel.stars}` : 'No ratings yet'}</p>
+                  {session && <span style={{color: '#10b981', fontSize: '0.9rem', fontWeight: 'bold'}}>15% Discount Applied!</span>}
+                </div>
               </div>
               <div style={{textAlign: 'right'}}>
                 <div style={{fontSize: '1.5rem', fontWeight: 'bold'}}>

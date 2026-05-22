@@ -17,6 +17,7 @@ model Hotel {
   stars       Float
   amenities   Json     // e.g., ["Free Wi-Fi", "Pool", "Breakfast"]
   isActive    Boolean  @default(true)
+  imageUrl    String?
   rooms       Room[]
   bookings    Booking[]
   createdAt   DateTime @default(now())
