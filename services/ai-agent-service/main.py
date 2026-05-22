@@ -32,6 +32,7 @@ class ChatRequest(BaseModel):
     message: str
     history: Optional[List[Dict[str, Any]]] = []
     user_id: str = None
+    access_token: str = None
 
 # Tool definitions for Groq
 tools = [
@@ -154,11 +155,8 @@ async def chat_with_agent(req: ChatRequest, x_user_id: str = Header(None)):
                     args = json.loads(tool_call.function.arguments)
                     if not uid or uid == 'anonymous':
                         return {"reply": "You need to be logged in to make a booking. Please log in first."}
-                    from datetime import date as date_cls
-                    start = date_cls.fromisoformat(args['startDate'])
-                    end = date_cls.fromisoformat(args['endDate'])
-                    nights = (end - start).days
-                    total_price = round(args['basePrice'] * nights, 2)
+                    if not req.access_token:
+                        return {"reply": "Authentication token missing. Please refresh the page and try again."}
                     try:
                         book_url = f"{GATEWAY_URL}/api/v1/hotels/book"
                         res = requests.post(book_url, json={
@@ -166,8 +164,7 @@ async def chat_with_agent(req: ChatRequest, x_user_id: str = Header(None)):
                             "roomId": args['roomId'],
                             "startDate": args['startDate'],
                             "endDate": args['endDate'],
-                            "totalPrice": total_price
-                        }, headers=headers, timeout=10)
+                        }, headers={"Authorization": f"Bearer {req.access_token}"}, timeout=10)
                         if res.status_code == 201:
                             booking = res.json()
                             return {"reply": f"Your booking is confirmed! Booking ID: {booking['id']}. Total price: ${total_price} for {nights} night(s). Enjoy your stay!"}

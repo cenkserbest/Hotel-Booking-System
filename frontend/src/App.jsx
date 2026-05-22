@@ -333,7 +333,7 @@ function App() {
       const res = await fetch(`${API_URL}/api/v1/agent/chat`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ message: userMsg, history: history, user_id: session?.user?.id || 'anonymous' })
+        body: JSON.stringify({ message: userMsg, history: history, user_id: session?.user?.id || 'anonymous', access_token: session?.access_token || null })
       })
       const data = await res.json()
       setMessages(prev => [
