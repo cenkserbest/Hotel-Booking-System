@@ -1,5 +1,15 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+})
 
 function App() {
   const [session, setSession] = useState(null)
@@ -15,6 +25,7 @@ function App() {
 
   const [hotels, setHotels] = useState([])
   const [loading, setLoading] = useState(false)
+  const [showMap, setShowMap] = useState(false)
 
   // Modals
   const [commentsModal, setCommentsModal] = useState({ show: false, data: null, comments: [], hotelName: '', hotelId: null })
@@ -102,6 +113,7 @@ function App() {
       } else {
         alert("Search error: " + (data.error || "Unknown error"))
         setHotels([])
+        setShowMap(false)
       }
     } catch (err) {
       console.error(err)
@@ -722,10 +734,42 @@ function App() {
 
       <div className="main-content">
         <div className="results">
-          <h3 style={{marginBottom: '1rem'}}>Search Results</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3>Search Results</h3>
+            {hotels.length > 0 && (
+              <button onClick={() => setShowMap(s => !s)} style={{ background: 'transparent', border: '1px solid var(--primary)', color: 'var(--primary)', padding: '0.4rem 0.9rem', fontSize: '0.85rem', borderRadius: '8px' }}>
+                {showMap ? '☰ Listeyi Göster' : '🗺 Haritada Göster'}
+              </button>
+            )}
+          </div>
+
           {hotels.length === 0 && !loading && <p style={{color: 'var(--text-muted)'}}>No hotels found. Try searching for "Istanbul" or "Rome" and check your dates.</p>}
-          
-          {hotels.map(hotel => (
+
+          {showMap && hotels.length > 0 && (
+            <MapContainer
+              center={[hotels[0].latitude || 41, hotels[0].longitude || 29]}
+              zoom={11}
+              style={{ height: '500px', width: '100%', borderRadius: '12px', marginBottom: '1rem' }}
+            >
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
+              {hotels.filter(h => h.latitude && h.longitude).map(hotel => (
+                <Marker key={hotel.id} position={[hotel.latitude, hotel.longitude]}>
+                  <Popup>
+                    <div style={{ minWidth: '160px' }}>
+                      <b>{hotel.name}</b><br />
+                      {hotel.city} · ⭐ {hotel.stars}<br />
+                      <span style={{ fontWeight: 'bold' }}>${hotel.rooms[0]?.basePrice?.toFixed(2)}/gece</span><br />
+                      <button onClick={() => setDetailModal({ show: true, hotel })} style={{ marginTop: '0.4rem', padding: '0.3rem 0.7rem', cursor: 'pointer', width: '100%' }}>
+                        Detayları Gör
+                      </button>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
+            </MapContainer>
+          )}
+
+          {!showMap && hotels.map(hotel => (
             <div key={hotel.id} className="glass-card hotel-card" style={{marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: '0.2s'}} onClick={() => setDetailModal({ show: true, hotel })}>
               <div>
                 <h4 style={{fontSize: '1.2rem'}}>{hotel.name}</h4>
