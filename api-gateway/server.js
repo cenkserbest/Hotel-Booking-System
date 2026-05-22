@@ -113,13 +113,48 @@ const swaggerSpec = swaggerJsdoc({
                     latitude: { type: 'number' },
                     longitude: { type: 'number' },
                     stars: { type: 'number' },
-                    amenities: { type: 'array', items: { type: 'string' } }
+                    amenities: { type: 'array', items: { type: 'string' } },
+                    imageUrl: { type: 'string', description: 'Public URL of hotel image (from Supabase Storage)' },
+                    rooms: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          roomType: { type: 'string', example: 'Double' },
+                          basePrice: { type: 'number', example: 120 },
+                          capacity: { type: 'integer', example: 2 }
+                        }
+                      }
+                    }
                   }
                 }
               }
             }
           },
           responses: { 201: { description: 'Hotel created' }, 401: { description: 'Unauthorized' }, 403: { description: 'Forbidden' } }
+        }
+      },
+      '/admin/hotels/{id}': {
+        patch: {
+          tags: ['Admin'],
+          summary: 'Update hotel image URL (admin only)',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['imageUrl'],
+                  properties: {
+                    imageUrl: { type: 'string', description: 'Public URL of the new hotel image' }
+                  }
+                }
+              }
+            }
+          },
+          responses: { 200: { description: 'Hotel image updated' }, 401: { description: 'Unauthorized' }, 403: { description: 'Forbidden' }, 404: { description: 'Hotel not found' } }
         }
       },
       '/admin/rooms/{roomId}/availability': {
