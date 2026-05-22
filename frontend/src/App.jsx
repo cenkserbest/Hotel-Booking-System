@@ -774,23 +774,21 @@ function App() {
                   return (
                     <>
                       {/* Room Type Selector */}
-                      {detailModal.hotel.rooms.length > 1 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: 0 }}>Oda Tipi Seçin</p>
-                          {detailModal.hotel.rooms.map(room => (
-                            <div key={room.id} onClick={() => setSelectedDetailRoomId(room.id)}
-                              style={{
-                                padding: '0.55rem 0.8rem', borderRadius: '8px', cursor: 'pointer',
-                                border: `1px solid ${activeRoom.id === room.id ? 'var(--primary)' : 'var(--glass-border)'}`,
-                                background: activeRoom.id === room.id ? 'rgba(79,70,229,0.15)' : 'rgba(255,255,255,0.03)',
-                                display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.88rem'
-                              }}>
-                              <span>{room.roomType} <span style={{ color: 'var(--text-muted)' }}>· {room.capacity} kişi</span></span>
-                              <span style={{ fontWeight: '600' }}>${room.basePrice.toFixed(2)}/gece</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: 0 }}>Oda Tipi Seçin</p>
+                        {detailModal.hotel.rooms.map(room => (
+                          <div key={room.id} onClick={() => setSelectedDetailRoomId(room.id)}
+                            style={{
+                              padding: '0.55rem 0.8rem', borderRadius: '8px', cursor: 'pointer',
+                              border: `1px solid ${activeRoom.id === room.id ? 'var(--primary)' : 'var(--glass-border)'}`,
+                              background: activeRoom.id === room.id ? 'rgba(79,70,229,0.15)' : 'rgba(255,255,255,0.03)',
+                              display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.88rem'
+                            }}>
+                            <span>{room.roomType} <span style={{ color: 'var(--text-muted)' }}>· {room.capacity} kişi</span></span>
+                            <span style={{ fontWeight: '600' }}>${room.basePrice.toFixed(2)}/gece</span>
+                          </div>
+                        ))}
+                      </div>
                       {/* Booking Summary */}
                       <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.9rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
