@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import requests
 import os
 import json
+from datetime import datetime
 from dotenv import load_dotenv
 from groq import Groq
 
@@ -167,7 +168,9 @@ async def chat_with_agent(req: ChatRequest, x_user_id: str = Header(None)):
                         }, headers={"Authorization": f"Bearer {req.access_token}"}, timeout=10)
                         if res.status_code == 201:
                             booking = res.json()
-                            return {"reply": f"Your booking is confirmed! Booking ID: {booking['id']}. Total price: ${total_price} for {nights} night(s). Enjoy your stay!"}
+                            total_price = booking.get('totalPrice', '?')
+                            nights = (datetime.strptime(args['endDate'], '%Y-%m-%d') - datetime.strptime(args['startDate'], '%Y-%m-%d')).days
+                            return {"reply": f"Your booking is confirmed! Booking ID: {booking.get('id')}. Total price: ${total_price} for {nights} night(s). Enjoy your stay!"}
                         else:
                             err = res.json()
                             return {"reply": f"Booking failed: {err.get('error', 'Unknown error')}"}
