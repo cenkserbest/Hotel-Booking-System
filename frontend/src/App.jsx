@@ -544,11 +544,11 @@ function App() {
                 <div style={{ display: 'flex', gap: '1.5rem', padding: '0.5rem 0' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                     <input type="radio" name="status" value="available" checked={adminForm.status === 'available'} onChange={e => setAdminForm({...adminForm, status: e.target.value})} style={{ width: 'auto', accentColor: 'var(--primary)' }} />
-                    Boş (Available)
+                    Müsait Kapasiteyi Ayarla
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                     <input type="radio" name="status" value="occupied" checked={adminForm.status === 'occupied'} onChange={e => setAdminForm({...adminForm, status: e.target.value})} style={{ width: 'auto', accentColor: 'var(--accent)' }} />
-                    Dolu (Occupied)
+                    Tümünü Kapat (Dolu)
                   </label>
                 </div>
               </div>
