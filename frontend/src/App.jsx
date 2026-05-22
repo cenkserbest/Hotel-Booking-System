@@ -320,6 +320,23 @@ function App() {
     }
   }
 
+  const handleOpenDetail = async (hotel) => {
+    // Open immediately with search data (instant UX)
+    setDetailModal({ show: true, hotel })
+    setSelectedDetailRoomId(null)
+    // Call GET /hotels/:id to use Redis cache, then refresh static hotel fields
+    try {
+      const res = await fetch(`${API_URL}/api/v1/hotels/${hotel.id}`)
+      if (res.ok) {
+        const fresh = await res.json()
+        // Keep rooms from search result (already filtered by capacity + discount applied)
+        setDetailModal({ show: true, hotel: { ...fresh, rooms: hotel.rooms } })
+      }
+    } catch (e) {
+      // Keep search data if detail call fails
+    }
+  }
+
   const handleSendChat = async () => {
     if (!chatInput.trim()) return
     const userMsg = chatInput
@@ -883,7 +900,7 @@ function App() {
                       <b>{hotel.name}</b><br />
                       {hotel.city} · ⭐ {hotel.stars}<br />
                       <span style={{ fontWeight: 'bold' }}>${hotel.rooms[0]?.basePrice?.toFixed(2)}/gece</span><br />
-                      <button onClick={() => setDetailModal({ show: true, hotel })} style={{ marginTop: '0.4rem', padding: '0.3rem 0.7rem', cursor: 'pointer', width: '100%' }}>
+                      <button onClick={() => handleOpenDetail(hotel)} style={{ marginTop: '0.4rem', padding: '0.3rem 0.7rem', cursor: 'pointer', width: '100%' }}>
                         Detayları Gör
                       </button>
                     </div>
@@ -894,7 +911,7 @@ function App() {
           )}
 
           {!showMap && hotels.map(hotel => (
-            <div key={hotel.id} className="glass-card hotel-card" style={{marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: '0.2s', overflow: 'hidden'}} onClick={() => setDetailModal({ show: true, hotel })}>
+            <div key={hotel.id} className="glass-card hotel-card" style={{marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: '0.2s', overflow: 'hidden'}} onClick={() => handleOpenDetail(hotel)}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{ width: '80px', height: '80px', flexShrink: 0, borderRadius: '8px', background: `url(${hotel.imageUrl || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=200&q=80'}) center/cover` }} />
                 <div>
