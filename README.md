@@ -11,15 +11,21 @@ Hotel booking system built with a microservices architecture, similar to Hotels.
 | Frontend | https://hotel-booking-system-umber-seven.vercel.app/ |
 | Demo Video | https://drive.google.com/drive/folders/1yFUOB4WoGQUjg7oeOOpvb302TpcWKHQp?usp=sharing |
 
-## Deployed Services (Azure)
+## Deployed Services
 
-| Service | URL |
-|---|---|
-| API Gateway | https://api-gateway-fthzgsdmc2dhfzd2.austriaeast-01.azurewebsites.net/api-docs |
-| Hotel Service | https://hotel-service-ewa3a5f8asd8d0fs.austriaeast-01.azurewebsites.net |
-| Comments Service | https://comments-service-ejgyh2gtd7hme5es.austriaeast-01.azurewebsites.net |
-| AI Agent Service | https://ai-agent-service-fmfgczbbhhdsh5du.austriaeast-01.azurewebsites.net |
-| Notification Service | https://notification-service-gwbyexhag9h4gvdf.austriaeast-01.azurewebsites.net |
+| Service | Provider | URL |
+|---|---|---|
+| API Gateway | Azure App Services | https://api-gateway-fthzgsdmc2dhfzd2.austriaeast-01.azurewebsites.net/api-docs |
+| Hotel Service | Azure App Services | https://hotel-service-ewa3a5f8asd8d0fs.austriaeast-01.azurewebsites.net |
+| Comments Service | Azure App Services | https://comments-service-ejgyh2gtd7hme5es.austriaeast-01.azurewebsites.net |
+| AI Agent Service | Azure App Services | https://ai-agent-service-fmfgczbbhhdsh5du.austriaeast-01.azurewebsites.net |
+| Notification Service | Azure App Services | https://notification-service-gwbyexhag9h4gvdf.austriaeast-01.azurewebsites.net |
+| Frontend | Vercel | https://hotel-booking-system-umber-seven.vercel.app/ |
+| PostgreSQL | Supabase | Supabase managed PostgreSQL |
+| MongoDB | MongoDB Atlas | Atlas managed cluster |
+| Redis Cache | Upstash | Upstash managed Redis |
+| RabbitMQ | CloudAMQP | CloudAMQP managed RabbitMQ |
+| Auth (IAM) | Supabase Auth | Supabase JWT-based authentication |
 
 ## Scheduling — Azure Logic Apps
 
@@ -115,8 +121,8 @@ Notification Service → logs reservation confirmation
 | Auth (IAM) | Supabase Auth (JWT) |
 | Primary DB | PostgreSQL 15 |
 | NoSQL DB | MongoDB 6 |
-| Cache | Redis 7 (Cache-Aside pattern) |
-| Message Queue | RabbitMQ 3 |
+| Cache | Redis 7 via Upstash (Cache-Aside pattern) |
+| Message Queue | RabbitMQ 3 via CloudAMQP |
 | Containerization | Docker, Docker Compose |
 
 ---
