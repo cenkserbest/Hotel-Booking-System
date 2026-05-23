@@ -364,7 +364,7 @@ function App() {
       const data = await res.json()
       setMessages(prev => [
         ...prev, 
-        { role: 'ai', text: data.reply, action: data.action, data: data }
+        { role: 'ai', text: data.reply || "Sorry, I didn't understand that. Try asking me to search for hotels!", action: data.action, data: data }
       ])
     } catch (err) {
       setMessages(prev => [...prev, { role: 'ai', text: 'Sorry, I am having trouble connecting to the server.' }])
