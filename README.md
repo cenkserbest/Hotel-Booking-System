@@ -13,19 +13,27 @@ Hotel booking system built with a microservices architecture, similar to Hotels.
 
 ## Deployed Services
 
+### Application Services
+
 | Service | Provider | URL |
 |---|---|---|
+| Frontend | Vercel | https://hotel-booking-system-umber-seven.vercel.app/ |
 | API Gateway | Azure App Services | https://api-gateway-fthzgsdmc2dhfzd2.austriaeast-01.azurewebsites.net/api-docs |
 | Hotel Service | Azure App Services | https://hotel-service-ewa3a5f8asd8d0fs.austriaeast-01.azurewebsites.net |
 | Comments Service | Azure App Services | https://comments-service-ejgyh2gtd7hme5es.austriaeast-01.azurewebsites.net |
 | AI Agent Service | Azure App Services | https://ai-agent-service-fmfgczbbhhdsh5du.austriaeast-01.azurewebsites.net |
 | Notification Service | Azure App Services | https://notification-service-gwbyexhag9h4gvdf.austriaeast-01.azurewebsites.net |
-| Frontend | Vercel | https://hotel-booking-system-umber-seven.vercel.app/ |
-| PostgreSQL | Supabase | Supabase managed PostgreSQL |
-| MongoDB | MongoDB Atlas | Atlas managed cluster |
-| Redis Cache | Upstash | Upstash managed Redis |
-| RabbitMQ | CloudAMQP | CloudAMQP managed RabbitMQ |
-| Auth (IAM) | Supabase Auth | Supabase JWT-based authentication |
+
+### Infrastructure & Data Services
+
+| Service | Provider | Description |
+|---|---|---|
+| PostgreSQL | Supabase | Managed PostgreSQL — transactional hotel/booking/room data |
+| Auth (IAM) | Supabase Auth | JWT-based authentication, role stored in `app_metadata` |
+| MongoDB | MongoDB Atlas | Managed NoSQL cluster — comments and ratings |
+| Redis Cache | Upstash | Serverless Redis — hotel detail (1h TTL) and search cache (5min TTL) |
+| Message Queue | CloudAMQP | Managed RabbitMQ — `new_reservations_queue` for async booking notifications |
+| Scheduler | Azure Logic Apps | Nightly capacity check — triggers `POST /api/internal/check-capacity` |
 
 ## Scheduling — Azure Logic Apps
 
